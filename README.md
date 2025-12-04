@@ -130,11 +130,11 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 
 ## **System Architecture**
 
-```
+
 <p align="center">
   <img src="./architecture.png" width="720" />
 </p>
-```
+
 
 ---
 
