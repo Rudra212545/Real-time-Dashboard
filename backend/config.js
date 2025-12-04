@@ -3,6 +3,15 @@ module.exports = {
   JWT_ISSUER: "microbridge.internal",
   JWT_EXP: "1h",
 
-  HMAC_SECRET: "HMAC_SECRET_987654321", 
-  HMAC_WINDOW_MS: 15000  
+  // User action signing
+  HMAC_SECRET: "HMAC_SECRET_987654321",
+  HMAC_WINDOW_MS: 15000,
+
+  // AGENT SECRETS 
+  AGENTS: {
+    HintAgent: "HINT_AGENT_SECRET_123",
+    NavAgent: "NAV_AGENT_SECRET_123",
+    PredictAgent: "PREDICT_AGENT_SECRET_123",
+    RuleAgent: "RULE_AGENT_SECRET_123"
+  }
 };
