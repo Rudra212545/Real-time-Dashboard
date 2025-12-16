@@ -293,7 +293,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// ---- EVENTBUS HANDLER (Day-3 Final) ----
+
 eventBus.on("action", (action) => {
   const userId = action.userId;
   console.log(`[action][${userId}] type=${action.type}`);

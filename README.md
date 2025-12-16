@@ -5,7 +5,7 @@
 
 ---
 
-## **📌 Table of Contents**
+##   Table of Contents
 
 * [Overview](#overview)
 * [Task Breakdown (7-Day + 4-Day)](#task-breakdown)
@@ -55,7 +55,7 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 
 ## **Task Breakdown**
 
-### **🟦 7-DAY TASK (Task 1)**
+### 7-DAY TASK (Task 1)
 
 | Day   | Focus                                         |
 | ----- | --------------------------------------------- |
@@ -67,7 +67,7 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 | Day 6 | Three.js preview + job queue                  |
 | Day 7 | Final dashboard + HHG reflection              |
 
-### **🟧 4-DAY TASK (Task 2)**
+###  4-DAY TASK (Task 2)
 
 (from the official test PDF)
 
@@ -136,64 +136,22 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 </p>
 
 
----
+For a detailed explanation of event flow, agent behavior, and security checkpoints,
+see 
+ - [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
-## **Setup & Installation**
-
-### **Requirements**
-
-* Node.js 18+
-* npm / yarn
-
-### **Clone & Install**
-
-```sh
-git clone <your_repo_url>
-cd project
-```
-
-### **Backend**
-
-```sh
-cd backend
-npm install
-npm run dev
-```
-
-### **Frontend**
-
-```sh
-cd frontend
-npm install
-npm run dev
-```
-
-Open:
-👉 [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## **Environment Variables**
+## Setup & Installation
 
-Create `backend/.env` with:
+Detailed setup and run instructions are documented in:
 
-```
-JWT_SECRET=your_secret
-JWT_ISSUER=microbridge.internal
-JWT_EXP=1h
+- [`RUN.md`](./RUN.md)
 
-# HMAC Keys for agents
-HINT_AGENT_SECRET=...
-NAV_AGENT_SECRET=...
-PREDICT_AGENT_SECRET=...
-
-# anti-replay
-NONCE_WINDOW_MS=15000
-```
-
-**Do NOT commit your .env file.**
-
+Follow the steps there to start the backend and frontend services.
 ---
+
 
 ## **How to Use the Dashboard**
 

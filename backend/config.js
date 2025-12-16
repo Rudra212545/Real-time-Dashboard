@@ -1,17 +1,17 @@
+require("dotenv").config();
+
 module.exports = {
-  JWT_SECRET: "JWT_SECRET_123456789",
-  JWT_ISSUER: "microbridge.internal",
-  JWT_EXP: "1h",
+  JWT_SECRET: process.env.JWT_SECRET,
+  JWT_ISSUER: process.env.JWT_ISSUER,
+  JWT_EXP: process.env.JWT_EXP,
 
-  // User action signing
-  HMAC_SECRET: "HMAC_SECRET_987654321",
-  HMAC_WINDOW_MS: 15000,
+  HMAC_SECRET: process.env.HMAC_SECRET,
+  HMAC_WINDOW_MS: Number(process.env.HMAC_WINDOW_MS),
 
-  // AGENT SECRETS 
   AGENTS: {
-    HintAgent: "HINT_AGENT_SECRET_123",
-    NavAgent: "NAV_AGENT_SECRET_123",
-    PredictAgent: "PREDICT_AGENT_SECRET_123",
-    RuleAgent: "RULE_AGENT_SECRET_123"
+    HintAgent: process.env.HINT_AGENT_SECRET,
+    NavAgent: process.env.NAV_AGENT_SECRET,
+    PredictAgent: process.env.PREDICT_AGENT_SECRET,
+    RuleAgent: process.env.RULE_AGENT_SECRET
   }
 };
