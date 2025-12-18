@@ -188,10 +188,12 @@ io.on('connection', (socket) => {
     }
 
     if (!verifyActionSignature({ type, payload, ts, nonce, sig })) {
+      console.log(`[SECURITY] Signature invalid — user=${socket.userId}`);
       return socket.emit("action_error", { error: "invalid_signature" });
     }
 
     if (!checkAndConsumeNonce(socket.userId, nonce)) {
+      console.log(`[SECURITY] Nonce replay — user=${socket.userId}`);
       return socket.emit("action_error", { error: "replay_detected" });
     }
 
@@ -343,7 +345,44 @@ eventBus.on("action", (action) => {
     console.log(`[AgentUpdate][${userId}]`, result);
   }
 });
+// HEALTH CHECK ENDPOINT
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "real-time-micro-bridge",
+    uptime: process.uptime(),
+    timestamp: Date.now()
+  });
+});
+// SECURITY STATUS ENDPOINT
+app.get("/security/status", (req, res) => {
+  res.status(200).json({
+    jwt: {
+      enabled: true,
+      issuer: process.env.JWT_ISSUER
+    },
+    hmac: {
+      enabled: true,
+      perAgent: true,
+      agents: Object.keys(AGENTS)
+    },
+    nonceProtection: {
+      enabled: true,
+      windowMs: Number(process.env.HMAC_WINDOW_MS)
+    },
+    heartbeat: {
+      enabled: true,
+      agents: Object.keys(AGENTS).reduce((acc, id) => {
+        acc[id] = "unknown"; // or "alive" if you track it
+        return acc;
+      }, {})
+    },
+    timestamp: Date.now()
+  });
+});
 
+
+// START SERVER
 server.listen(3000, () => {
   console.log("server running at http://localhost:3000");
 });

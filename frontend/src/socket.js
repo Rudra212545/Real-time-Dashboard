@@ -6,6 +6,9 @@ const socket = io("http://localhost:3000", {
   auth: { token: localStorage.getItem("jwt") || "" }
 });
 
+// expose socket for Day-2 testing
+window.__socket = socket;
+
 export function refreshSocketAuth() {
   socket.auth = { token: localStorage.getItem("jwt") };
   if (!socket.connected) socket.connect();
