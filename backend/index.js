@@ -25,7 +25,7 @@ const { AGENTS } = require("./config");
 // Register agent signatures
 for (const [agentId, secret] of Object.entries(AGENTS)) {
   registerHMAC(agentId, secret);
-  console.log(`Registered agent for Day-2: ${agentId}`);
+  console.log(`Registered agent for : ${agentId}`);
 }
 
 // EXPRESS + SERVER + SOCKET.IO

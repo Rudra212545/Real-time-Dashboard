@@ -4,38 +4,24 @@ class PredictAgent {
   }
 
   evaluate(action, state) {
-    const recent = state.actions.slice(-10); // last 10 actions of THIS user
+    const now = Date.now();
 
-    // --- Pattern 1: Rapid clicking ---
-    const clickCount = recent.filter(a => a.type === "click").length;
-    if (clickCount >= 5) {
+    // Pattern 1: Rapid interaction
+    if (state.spamCount >= 3) {
       return {
         agent: this.name,
         reason: "rapid_click_pattern",
-        message: "Prediction: User will click again soon."
+        message: "Prediction: User likely to continue rapid interaction."
       };
     }
 
-    // --- Pattern 2: Idle trend ---
-    const lastThree = recent.slice(-3).map(a => a.type);
-    if (lastThree.every(t => t === "idle")) {
+    // Pattern 2: Sustained idle
+    if (state.isIdle && now - state.lastActionAt > 5000) {
       return {
         agent: this.name,
         reason: "idle_pattern",
-        message: "Prediction: User likely to stay idle."
+        message: "Prediction: User likely to remain idle."
       };
-    }
-
-    // --- Pattern 3: Slow browsing (time gap > 4s) ---
-    if (recent.length >= 2) {
-      const gap = recent[recent.length - 1].timestamp - recent[recent.length - 2].timestamp;
-      if (gap > 4000) {
-        return {
-          agent: this.name,
-          reason: "slow_browsing",
-          message: "Prediction: User moving slowly through actions."
-        };
-      }
     }
 
     return null;
