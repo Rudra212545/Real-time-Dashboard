@@ -64,7 +64,7 @@ function markInactive(userId) {
 
 startHeartbeatMonitor({ markInactive, presence });
 
-// ---- USER STATE HELPERS ----
+//USER STATE HELPERS 
 function ensureUserState(userId) {
   if (!userStates[userId]) {
     userStates[userId] = {
@@ -96,7 +96,7 @@ function scheduleIdleCheck(userId, idleMs = 5000) {
   }, idleMs);
 }
 
-// ---- SOCKET.IO MAIN CONNECTION ----
+// SOCKET.IO MAIN CONNECTION
 io.on('connection', (socket) => {
   console.log(`socket connected: ${socket.id} userId=${socket.userId}`);
 
@@ -144,7 +144,7 @@ io.on('connection', (socket) => {
   userStates[userId].lastActionAt = Date.now();
   scheduleIdleCheck(userId);
 
-  // ---- PRESENCE HANDLER ----
+  //  PRESENCE HANDLER 
   socket.on("presence", (state) => {
     if (!socket.userId) return;
 
@@ -177,7 +177,7 @@ io.on('connection', (socket) => {
     scheduleIdleCheck(userId);
   });
 
-  // ---- ACTIONS HANDLER ----
+  // ACTIONS HANDLER
   socket.on("action", (actionData) => {
     if (!socket.userId) return;
 
@@ -227,7 +227,7 @@ io.on('connection', (socket) => {
 
   attachHeartbeatHandlers(socket);
 
-  // ---- JOB QUEUE ----
+  //JOB QUEUE
   socket.on("generate_world", (payload) => {
     const { config, submittedAt } = payload;
 

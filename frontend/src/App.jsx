@@ -32,7 +32,7 @@ function App() {
 
   const lastActiveTime = useRef(Date.now());
 
-  // --- JWT AUTH & AUTO-IDLE DETECTION ---
+  //  JWT AUTH & AUTO-IDLE DETECTION 
   useEffect(() => {
     async function getToken() {
       const res = await fetch("http://localhost:3000/auth/token", {
@@ -74,7 +74,7 @@ function App() {
     };
   }, [status]);
 
-  // --- Update cube when job finishes ---
+  //  Update cube when job finishes 
   useEffect(() => {
     const latestFinished = jobHistory.find(job => job.status === "finished");
     if (latestFinished) {
@@ -82,7 +82,7 @@ function App() {
     }
   }, [jobHistory]);
 
-  // --- SOCKET LISTENERS ---
+  //  SOCKET LISTENERS 
   useEffect(() => {
     socket.on("connect_error", (err) => {
       console.error("Socket connect_error:", err.message);
@@ -208,7 +208,7 @@ function App() {
     };
   }, []);
 
-  // --- HEARTBEAT ---
+  //  HEARTBEAT 
   useEffect(() => {
     const interval = setInterval(() => {
       socket.emit("heartbeat", { ts: Date.now() });
