@@ -132,13 +132,13 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 
 
 <p align="center">
-  <img src="./architecture.png" width="720" />
+  <img src="./MD/architecture.png" width="720" />
 </p>
 
 
 For a detailed explanation of event flow, agent behavior, and security checkpoints,
 see 
- - [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+ - [`ARCHITECTURE.md`](./MD/ARCHITECTURE.md).
 
 
 ---
