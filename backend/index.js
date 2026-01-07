@@ -59,9 +59,11 @@ const presence = {};
 function markInactive(userId) {
   if (presence[userId]) {
     presence[userId].state = "inactive";
+    presence[userId].lastActiveAt = Date.now();
     emitPresenceScoped();
   }
 }
+
 
 startHeartbeatMonitor({ markInactive, presence });
 
@@ -121,7 +123,14 @@ function emitPresenceScoped() {
 io.on('connection', (socket) => {
   console.log(`socket connected: ${socket.id} userId=${socket.userId}`);
 
-  const userId = socket.userId;
+  const rawUserId = socket.userId;
+  const userId =
+    typeof rawUserId === "object"
+      ? rawUserId.userId
+      : rawUserId;
+  
+  socket.userId = userId;
+  
 
   if (!userId) {
     console.warn("Unauthenticated socket, disconnecting:", socket.id);
@@ -129,16 +138,20 @@ io.on('connection', (socket) => {
     return;
   }
 
-  const normalizedUserId =
-  typeof socket.userId === "object"
-    ? socket.userId.userId
-    : socket.userId;
+  const userAgent = socket.handshake.headers["user-agent"] || "";
 
-socket.emit("auth_context", {
-  userId: normalizedUserId,
-  role: socket.role,
-  isSimulated: !!socket.isSimulated
-});
+  const device =
+    /mobile|android|iphone|ipad/i.test(userAgent)
+      ? "mobile"
+      : "desktop";
+
+
+
+      socket.emit("auth_context", {
+        userId: socket.userId,
+        role: socket.role,
+        isSimulated: !!socket.isSimulated
+      });
 
 
   // assign each connection to user room
@@ -164,11 +177,15 @@ socket.emit("auth_context", {
 
   // initialize presence
   presence[userId] = {
+    userId,
+    role: socket.role,
+    device,
     socketId: socket.id,
+    state: "active",
     connectedAt: Date.now(),
-    lastSeen: Date.now(),
-    state: "active"
+    lastActiveAt: Date.now()
   };
+  
 
   emitPresenceScoped();
 
@@ -183,7 +200,8 @@ socket.emit("auth_context", {
     if (!socket.userId) return;
 
     presence[userId].state = state;
-    presence[userId].lastSeen = Date.now();
+    presence[userId].lastActiveAt = Date.now();
+
     emitPresenceScoped();
 
 
@@ -257,6 +275,12 @@ socket.emit("auth_context", {
       us.spamCount = 0;
     }
 
+    if (presence[userId]) {
+      presence[userId].lastActiveAt = Date.now();
+      emitPresenceScoped();
+    }
+
+
     eventBus.publish(action);
   });
 
@@ -311,7 +335,8 @@ socket.emit("auth_context", {
     if (!presence[userId]) return;
 
     presence[userId].state = "disconnected";
-    presence[userId].lastSeen = Date.now();
+    presence[userId].lastActiveAt = Date.now();
+
     emitPresenceScoped();
 
 
@@ -393,7 +418,7 @@ function requireAdminHttp(req, res, next) {
   const token = authHeader.split(" ")[1];
   try {
     const decoded = verifyToken(token);
-    if (decoded.role !== "admin") {
+    if (!decoded.roles || !decoded.roles.includes("admin")) {
       return res.status(403).json({ error: "admin_only" });
     }
     next();

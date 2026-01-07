@@ -40,7 +40,7 @@ export default function AgentPanel({ agents = {}, recentEvents = [] }) {
         })}
       </div>
 
-      <div className="agent-log">
+      {/* <div className="agent-log">
         <h4>Recent Events</h4>
         {recentEvents.slice(0,6).map((e, i) => (
           <div key={i} className="ev">
@@ -48,7 +48,7 @@ export default function AgentPanel({ agents = {}, recentEvents = [] }) {
             <span style={{marginLeft:8}}>{e.reason || e.message || JSON.stringify(e).slice(0,60)}</span>
           </div>
         ))}
-      </div>
+      </div> */}
 
       <style>{`
         .agent-grid { display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;}
