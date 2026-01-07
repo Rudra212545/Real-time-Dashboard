@@ -12,7 +12,11 @@ const agents = [HintAgent, NavAgent, PredictAgent, RuleAgent];
 
 class Orchestrator {
   evaluate(action) {
-    const { userId } = action;
+    const rawUserId = action.userId;
+    const userId =
+      typeof rawUserId === "object"
+        ? rawUserId.userId
+        : rawUserId;
 
     // Pull per-user state (created by index.js)
     const state = userStates[userId];

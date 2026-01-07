@@ -9,6 +9,7 @@ const orchestrator = require("./orchestrator/multiAgentOrchestrator");
 const { verifyActionSignature } = require("./auth/signature");
 const socketAuth = require("./auth/socketAuth");
 const authRoutes = require("./routes/authRoutes");
+const { verifyToken } = require("./auth/jwt");
 const { checkAndConsumeNonce } = require("./nonceStore");
 const { attachHeartbeatHandlers, startHeartbeatMonitor } = require("./heartbeat");
 const { addJob } = require('./jobQueue');
@@ -58,13 +59,14 @@ const presence = {};
 function markInactive(userId) {
   if (presence[userId]) {
     presence[userId].state = "inactive";
-    io.emit("presence_update", presence);
+    emitPresenceScoped();
   }
 }
 
 startHeartbeatMonitor({ markInactive, presence });
 
 //USER STATE HELPERS 
+
 function ensureUserState(userId) {
   if (!userStates[userId]) {
     userStates[userId] = {
@@ -96,6 +98,25 @@ function scheduleIdleCheck(userId, idleMs = 5000) {
   }, idleMs);
 }
 
+function requireAdmin(socket) {
+  return socket.role === "admin";
+}
+
+function emitPresenceScoped() {
+  io.sockets.sockets.forEach((s) => {
+    if (!s.userId) return;
+
+    if (s.role === "admin") {
+      s.emit("presence_update", presence);
+    } else {
+      s.emit("presence_update", {
+        [s.userId]: presence[s.userId]
+      });
+    }
+  });
+}
+
+
 // SOCKET.IO MAIN CONNECTION
 io.on('connection', (socket) => {
   console.log(`socket connected: ${socket.id} userId=${socket.userId}`);
@@ -107,6 +128,18 @@ io.on('connection', (socket) => {
     socket.disconnect(true);
     return;
   }
+
+  const normalizedUserId =
+  typeof socket.userId === "object"
+    ? socket.userId.userId
+    : socket.userId;
+
+socket.emit("auth_context", {
+  userId: normalizedUserId,
+  role: socket.role,
+  isSimulated: !!socket.isSimulated
+});
+
 
   // assign each connection to user room
   socket.join(`user:${userId}`);
@@ -137,7 +170,8 @@ io.on('connection', (socket) => {
     state: "active"
   };
 
-  io.emit("presence_update", presence);
+  emitPresenceScoped();
+
 
   // ensure user state exists
   ensureUserState(userId);
@@ -150,7 +184,8 @@ io.on('connection', (socket) => {
 
     presence[userId].state = state;
     presence[userId].lastSeen = Date.now();
-    io.emit("presence_update", presence);
+    emitPresenceScoped();
+
 
     if (state === "idle") {
       const us = ensureUserState(userId);
@@ -277,7 +312,8 @@ io.on('connection', (socket) => {
 
     presence[userId].state = "disconnected";
     presence[userId].lastSeen = Date.now();
-    io.emit("presence_update", presence);
+    emitPresenceScoped();
+
 
     // clear idle timer
     if (userStates[userId] && userStates[userId].idleTimer) {
@@ -289,7 +325,8 @@ io.on('connection', (socket) => {
     setTimeout(() => {
       if (presence[userId] && presence[userId].state === "disconnected") {
         delete presence[userId];
-        io.emit("presence_update", presence);
+        emitPresenceScoped();
+
       }
     }, 10000);
   });
@@ -345,6 +382,26 @@ eventBus.on("action", (action) => {
     console.log(`[AgentUpdate][${userId}]`, result);
   }
 });
+
+//Middleware 
+function requireAdminHttp(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "missing_token" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = verifyToken(token);
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ error: "admin_only" });
+    }
+    next();
+  } catch {
+    return res.status(401).json({ error: "invalid_token" });
+  }
+}
+
 // HEALTH CHECK ENDPOINT
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -355,7 +412,7 @@ app.get("/health", (req, res) => {
   });
 });
 // SECURITY STATUS ENDPOINT
-app.get("/security/status", (req, res) => {
+app.get("/security/status", requireAdminHttp,(req, res) => {
   res.status(200).json({
     jwt: {
       enabled: true,

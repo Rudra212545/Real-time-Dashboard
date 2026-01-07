@@ -68,11 +68,6 @@ export default function UserPreferencePanel() {
       </div>
 
       <div className="pref-option">
-        <label>Enable Sound</label>
-        <input type="checkbox" checked={soundEnabled} onChange={toggleSound} />
-      </div>
-
-      <div className="pref-option">
         <label>Dark Mode</label>
         <input type="checkbox" checked={darkMode} onChange={toggleTheme} />
       </div>

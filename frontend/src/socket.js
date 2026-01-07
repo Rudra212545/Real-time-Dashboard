@@ -1,12 +1,12 @@
 import { io } from "socket.io-client";
 
 const socket = io("http://localhost:3000", {
-  autoConnect: true,
+  autoConnect: false,
   transports: ["websocket"],
   auth: { token: localStorage.getItem("jwt") || "" }
 });
 
-// expose socket for Day-2 testing
+// expose socket 
 window.__socket = socket;
 
 export function refreshSocketAuth() {

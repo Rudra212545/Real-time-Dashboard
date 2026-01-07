@@ -28,26 +28,29 @@ function App() {
   const [signatureLog, setSignatureLog] = useState([]);
   const [replayAlerts, setReplayAlerts] = useState([]);
   const [heartbeatStatus, setHeartbeatStatus] = useState({});
+  const [authContext, setAuthContext] = useState(null);
   const navigate = useNavigate(); 
 
   const lastActiveTime = useRef(Date.now());
 
-  //  JWT AUTH & AUTO-IDLE DETECTION 
+  //  JWT AUTH 
   useEffect(() => {
     async function getToken() {
       const res = await fetch("http://localhost:3000/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: "testuser123" })
+        body: JSON.stringify({ userId: "user" })
       });
-
+  
       const { token } = await res.json();
       localStorage.setItem("jwt", token);
       refreshSocketAuth();
     }
-
+  
     getToken();
-
+  }, []); 
+  // IDLE DETECTION
+  useEffect(() => {
     const handleActivity = () => {
       if (status !== "active") {
         setStatus("active");
@@ -55,10 +58,10 @@ function App() {
       }
       lastActiveTime.current = Date.now();
     };
-
+  
     window.addEventListener("mousemove", handleActivity);
     window.addEventListener("keydown", handleActivity);
-
+  
     const idleCheck = setInterval(() => {
       const now = Date.now();
       if (now - lastActiveTime.current > 5000 && status !== "idle") {
@@ -66,13 +69,16 @@ function App() {
         socket.emit("presence", "idle");
       }
     }, 1000);
-
+  
     return () => {
       window.removeEventListener("mousemove", handleActivity);
       window.removeEventListener("keydown", handleActivity);
       clearInterval(idleCheck);
     };
   }, [status]);
+  
+  
+  
 
   //  Update cube when job finishes 
   useEffect(() => {
@@ -190,6 +196,15 @@ function App() {
       console.log("pong received:", data);
     });
 
+    socket.on("auth_context", (ctx) => {
+      console.log("Auth context received:", ctx);
+      setAuthContext(ctx);
+    });
+
+    socket.on("auth_error", (err) => {
+      console.warn("Authorization error:", err);
+    });
+
     // cleanup on unmount
     return () => {
       socket.off("connect");
@@ -205,6 +220,9 @@ function App() {
       socket.off("agent_nonce");
       socket.off("agent_heartbeat_result");
       socket.off("action_error");
+      socket.off("auth_context");
+      socket.off("auth_error");
+
     };
   }, []);
 
@@ -250,12 +268,15 @@ function App() {
 
         <PresencePanel presenceList={presenceList} />
 
-        <SecurityPanel 
-        agentNonces={agentNonces}
-        signatureLog={signatureLog}
-        replayAlerts={replayAlerts}
-        heartbeatStatus={heartbeatStatus}
-      />
+        {authContext?.role === "admin" && (
+          <SecurityPanel 
+            agentNonces={agentNonces}
+            signatureLog={signatureLog}
+            replayAlerts={replayAlerts}
+            heartbeatStatus={heartbeatStatus}
+          />
+        )}
+
       <UserPreferencePanel />
 
       </div>

@@ -1,11 +1,10 @@
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET, JWT_ISSUER, JWT_EXP } = require("../config");
 
-
-function createToken(userId, roles = ["user"]) {
+function createToken(userId, roles = "user") {
   const payload = {
-    sub: userId,
-    roles,
+    sub: userId,  
+    roles,  
   };
 
   return jwt.sign(payload, JWT_SECRET, {
@@ -15,7 +14,9 @@ function createToken(userId, roles = ["user"]) {
 }
 
 function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET, { issuer: JWT_ISSUER });
+  return jwt.verify(token, JWT_SECRET, {
+    issuer: JWT_ISSUER
+  });
 }
 
 module.exports = {
