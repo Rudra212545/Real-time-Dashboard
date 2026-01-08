@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import socket from "../socket";
+import socket from "../socket/socket";
 import CryptoJS from "crypto-js";
 
 // --- SIGNING FUNCTION ---

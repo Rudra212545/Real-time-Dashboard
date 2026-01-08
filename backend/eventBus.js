@@ -10,14 +10,27 @@ class EventBus extends EventEmitter {
   }
 
   publish(action) {
-    // minimal validation
-    if (!action || !action.type || !action.userId) return;
-    action.timestamp = Date.now();
-    this.log.push(action);
+    if (
+      !action ||
+      !action.type ||
+      !action.userId ||
+      !action.sessionId ||
+      !action.clientTs
+    ) {
+      return;
+    }
+  
+    const enriched = {
+      ...action,
+      serverTs: Date.now()
+    };
+  
+    this.log.push(enriched);
     if (this.log.length > this.maxLog) this.log.shift();
-    this.emit('action', action);
+  
+    this.emit("action", enriched);
   }
-
+  
   getLog() {
     return this.log.slice().reverse(); // newest first
   }

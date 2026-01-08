@@ -1,0 +1,316 @@
+const { Server } = require("socket.io");
+const socketAuth = require("./auth/socketAuth");
+const { registerBusSubscribers } = require("./busSubscribers");
+
+const orchestrator = require("./orchestrator/multiAgentOrchestrator");
+const { userStates } = require("./state/userStates");
+
+const { verifyActionSignature } = require("./auth/signature");
+const { checkAndConsumeNonce } = require("./nonceStore");
+const { attachHeartbeatHandlers, startHeartbeatMonitor } = require("./heartbeat");
+const { addJob } = require("./jobQueue");
+const { rotateNonce } = require("./security/nonce_registry");
+const { processHeartbeat } = require("./security/heartbeat_monitor");
+const { AGENTS } = require("./config");
+const eventBus = require("./eventBus");
+
+function initSocket(server) {
+  const io = new Server(server, {
+    cors: { origin: "http://localhost:5173" }
+  });
+
+  const presence = {};
+
+  io.use(socketAuth);
+
+  //  EventBus subscribers MUST be registered ONCE here
+  registerBusSubscribers(io, orchestrator, userStates);
+
+  startHeartbeatMonitor({
+    presence,
+    markInactive: (userId) => {
+      if (presence[userId]) {
+        presence[userId].state = "inactive";
+        presence[userId].lastActiveAt = Date.now();
+        emitPresenceScoped();
+      }
+    }
+  });
+
+  function emitPresenceScoped() {
+    io.sockets.sockets.forEach((s) => {
+      if (!s.userId) return;
+      s.emit("presence_update",
+        s.role === "admin" ? presence : { [s.userId]: presence[s.userId] }
+      );
+    });
+  }
+
+  function ensureUserState(userId) {
+    if (!userStates[userId]) {
+      userStates[userId] = {
+        userId,
+        actions: [],
+        lastActionAt: Date.now(),
+        isIdle: false,
+        spamCount: 0,
+        idleTimer: null
+      };
+    }
+    return userStates[userId];
+  }
+
+  function scheduleIdleCheck(userId, ms = 5000) {
+    const us = ensureUserState(userId);
+    clearTimeout(us.idleTimer);
+
+    us.idleTimer = setTimeout(() => {
+      us.isIdle = true;
+      io.to(`user:${userId}`).emit("nav_idle_prompt", { userId });
+      const r = orchestrator.evaluate({ type: "idle", userId });
+      if (r) io.to(`user:${userId}`).emit("agent_update", r);
+    }, ms);
+  }
+
+  io.on('connection', (socket) => {
+    console.log(`socket connected: ${socket.id} userId=${socket.userId}`);
+  
+    const rawUserId = socket.userId;
+    const userId =
+      typeof rawUserId === "object"
+        ? rawUserId.userId
+        : rawUserId;
+    
+    socket.userId = userId;
+  
+    const sessionId = `${userId}:${Date.now()}`;
+    socket.sessionId = sessionId;
+    
+  
+    if (!userId) {
+      console.warn("Unauthenticated socket, disconnecting:", socket.id);
+      socket.disconnect(true);
+      return;
+    }
+  
+    const userAgent = socket.handshake.headers["user-agent"] || "";
+  
+    const device =
+      /mobile|android|iphone|ipad/i.test(userAgent)
+        ? "mobile"
+        : "desktop";
+  
+  
+  
+        socket.emit("auth_context", {
+          userId: socket.userId,
+          role: socket.role,
+          isSimulated: !!socket.isSimulated
+        });
+  
+  
+    // assign each connection to user room
+    socket.join(`user:${userId}`);
+  
+    // nonces per agent
+    const agentNonces = {};
+    for (const agentId of Object.keys(AGENTS)) {
+      agentNonces[agentId] = rotateNonce(agentId);
+    }
+    socket.emit("agent_nonce", agentNonces);
+  
+    // secure agent heartbeat
+    socket.on("agent_heartbeat", (hb) => {
+      const result = processHeartbeat(hb);
+      if (!result.ok) {
+        console.warn(`Agent heartbeat rejected (${hb.agentId}): ${result.reason}`);
+        return socket.emit("agent_heartbeat_result", { ok: false, reason: result.reason });
+      }
+      console.log(`Secure heartbeat accepted from ${hb.agentId}`);
+      socket.emit("agent_heartbeat_result", { ok: true });
+    });
+  
+    // initialize presence
+    presence[userId] = {
+      userId,
+      role: socket.role,
+      device,
+      socketId: socket.id,
+      state: "active",
+      connectedAt: Date.now(),
+      lastActiveAt: Date.now()
+    };
+    
+  
+    emitPresenceScoped();
+  
+  
+    // ensure user state exists
+    ensureUserState(userId);
+    userStates[userId].lastActionAt = Date.now();
+    scheduleIdleCheck(userId);
+  
+    //  PRESENCE HANDLER 
+    socket.on("presence", (state) => {
+      if (!socket.userId) return;
+  
+      presence[userId].state = state;
+      presence[userId].lastActiveAt = Date.now();
+  
+      emitPresenceScoped();
+  
+  
+      if (state === "idle") {
+        const us = ensureUserState(userId);
+      
+        // If user is already idle, DO NOT retrigger agents
+        if (us.isIdle === true) return;
+      
+        // First time idle → mark idle + trigger agents
+        us.isIdle = true;
+      
+        const agentResult = orchestrator.evaluate({
+          type: "idle",
+          userId
+        });
+      
+        if (agentResult) io.to(`user:${userId}`).emit("agent_update", agentResult);
+        return;
+      }
+      
+  
+      // active → reset idle timer
+      const us = ensureUserState(userId);
+      us.isIdle = false;
+      scheduleIdleCheck(userId);
+    });
+  
+    // ACTIONS HANDLER
+    socket.on("action", (actionData) => {
+      if (!socket.userId) return;
+  
+      const { type, payload, ts, nonce, sig } = actionData;
+  
+      if (Math.abs(Date.now() - ts) > 15000) {
+        return socket.emit("action_error", { error: "timestamp_expired" });
+      }
+  
+      if (!verifyActionSignature({ type, payload, ts, nonce, sig })) {
+        console.log(`[SECURITY] Signature invalid — user=${socket.userId}`);
+        return socket.emit("action_error", { error: "invalid_signature" });
+      }
+  
+      if (!checkAndConsumeNonce(socket.userId, nonce)) {
+        console.log(`[SECURITY] Nonce replay — user=${socket.userId}`);
+        return socket.emit("action_error", { error: "replay_detected" });
+      }
+  
+      // trusted action
+      const action = {
+        userId: socket.userId,
+        sessionId: socket.sessionId,
+        type,
+        payload,
+        clientTs: ts
+      };
+      const us = ensureUserState(action.userId);
+      us.actions.push(action);
+  
+      us.isIdle = false;
+      us.lastActionAt = Date.now();
+      scheduleIdleCheck(action.userId);
+  
+      if (type === "click") {
+        const now = Date.now();
+        us.actions = us.actions.filter(
+          (a) => !(a.type === "click" && now - a.timestamp > 1000)
+        );
+        us.spamCount = us.actions.filter((a) => a.type === "click").length;
+      } else {
+        us.spamCount = 0;
+      }
+  
+      if (presence[userId]) {
+        presence[userId].lastActiveAt = Date.now();
+        emitPresenceScoped();
+      }
+  
+  
+      eventBus.publish(action);
+    });
+  
+    attachHeartbeatHandlers(socket);
+  
+    //JOB QUEUE
+    socket.on("generate_world", (payload) => {
+      const { config, submittedAt } = payload;
+  
+      const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+  
+      const job = {
+        id: jobId,
+        userId: socket.userId,
+        config,
+        submittedAt
+      };
+  
+      addJob(job, (jobObj, status) => {
+  
+        // FIXED: per-user job_status emit
+        io.to(`user:${jobObj.userId}`).emit("job_status", {
+          id: jobObj.id,
+          status,
+          config: jobObj.config,
+          submittedAt: jobObj.submittedAt,
+          userId: jobObj.userId
+        });
+  
+        if (status === "finished") {
+          const agentUpdate = orchestrator.evaluate({
+            type: "build_finished",
+            config: jobObj.config,
+            userId: jobObj.userId
+          });
+  
+          // FIXED: per-user agent update
+          if (agentUpdate) {
+            io.to(`user:${jobObj.userId}`).emit("agent_update", agentUpdate);
+          }
+        }
+      });
+    });
+  
+    // ping-pong
+    socket.on("ping", (data) => {
+      socket.emit("pong", { reply: "pong", received: data });
+    });
+  
+    // disconnect
+    socket.on("disconnect", () => {
+      if (!presence[userId]) return;
+  
+      presence[userId].state = "disconnected";
+      presence[userId].lastActiveAt = Date.now();
+  
+      emitPresenceScoped();
+  
+  
+      // clear idle timer
+      if (userStates[userId] && userStates[userId].idleTimer) {
+        clearTimeout(userStates[userId].idleTimer);
+        userStates[userId].idleTimer = null;
+      }
+  
+      // delete after 10s
+      setTimeout(() => {
+        if (presence[userId] && presence[userId].state === "disconnected") {
+          delete presence[userId];
+          emitPresenceScoped();
+  
+        }
+      }, 10000);
+    });
+  });
+}
+
+module.exports = { initSocket };

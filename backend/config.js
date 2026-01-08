@@ -13,5 +13,7 @@ module.exports = {
     NavAgent: process.env.NAV_AGENT_SECRET,
     PredictAgent: process.env.PREDICT_AGENT_SECRET,
     RuleAgent: process.env.RULE_AGENT_SECRET
-  }
+  },
+
+  MONG0_URI: process.env.MONGO_URI,
 };

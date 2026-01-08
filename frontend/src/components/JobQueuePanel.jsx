@@ -1,32 +1,10 @@
 import React, { useEffect, useState } from "react";
-import socket from "../socket"; // adjust path if needed
+import socket from "../socket/socket"; // adjust path if needed
 
 export default function JobQueuePanel({ jobHistory, setJobHistory }) {
 
   const [agentMessage, setAgentMessage] = useState(null);
 
-  useEffect(() => {
-    // Listen for job status
-    socket.on("job_status", (job) => {
-      setJobHistory(prev => {
-        const idx = prev.findIndex(j => j.id === job.id);
-        if (idx >= 0) {
-          const updated = [...prev];
-          updated[idx] = job;
-          return updated;
-        }
-        return [job, ...prev].slice(0, 10); // limit history
-      });
-    });
-    // Listen for agent update
-    socket.on("agent_update", (msg) => {
-      setAgentMessage(msg);
-    });
-    return () => {
-      socket.off("job_status");
-      socket.off("agent_update");
-    };
-  }, []);
 
   return (
     <div className="card">

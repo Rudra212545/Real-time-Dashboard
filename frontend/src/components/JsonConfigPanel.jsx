@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import socket from "../socket"; 
+import socket from "../socket/socket"; 
 import CubePreview from "./CubePreview";
 
 export default function JsonConfigPanel({ onConfigChange, previewConfig }) {
