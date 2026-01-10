@@ -16,11 +16,18 @@ function signAction(type, payload) {
   return { ts, nonce, sig };
 }
 
+// window.__signAction = signAction;
+
+
 export default function ActionsPanel() {
   const [customAction, setCustomAction] = useState("");
 
   const sendAction = (type, payload) => {
     const { ts, nonce, sig } = signAction(type, payload);
+
+     // 🔍 TEMP LOG FOR DAY 6 TESTING
+  // console.log("SIGNATURE LOG:", { type, payload, ts, nonce, sig });
+
     socket.emit("action", { type, payload, ts, nonce, sig });
   };
 

@@ -6,15 +6,18 @@ const orchestrator = require("./orchestrator/multiAgentOrchestrator");
 const { userStates } = require("./state/userStates");
 
 const { verifyActionSignature } = require("./auth/signature");
-const { checkAndConsumeNonce } = require("./nonceStore");
-const { attachHeartbeatHandlers, startHeartbeatMonitor } = require("./heartbeat");
+const { checkAndConsumeNonce } = require("./security/nonceStore");
+const { attachHeartbeatHandlers, startHeartbeatMonitor } = require("./security/heartbeat");
 const { addJob } = require("./jobQueue");
 const { rotateNonce } = require("./security/nonce_registry");
 const { processHeartbeat } = require("./security/heartbeat_monitor");
 const { AGENTS } = require("./config");
 const eventBus = require("./eventBus");
+const {recordBehaviour, getSessionBehaviours} = require("./telemetry/behaviourRecorder");
+const {buildSessionSummary} = require("./telemetry/sessionSummary");
 
 function initSocket(server) {
+
   const io = new Server(server, {
     cors: { origin: "http://localhost:5173" }
   });
@@ -85,6 +88,8 @@ function initSocket(server) {
   
     const sessionId = `${userId}:${Date.now()}`;
     socket.sessionId = sessionId;
+    socket.sessionStart = Date.now();
+
     
   
     if (!userId) {
@@ -234,7 +239,21 @@ function initSocket(server) {
         presence[userId].lastActiveAt = Date.now();
         emitPresenceScoped();
       }
-  
+      
+      // Record behaviour
+      recordBehaviour({
+        sessionId: socket.sessionId,
+        userId: socket.userId,
+        role: socket.role,
+        device,
+        actionType: type,
+        category: actionData.category || "GENERAL",
+        context: {
+          payloadKeys: payload ? Object.keys(payload) : []
+        },
+        ts: Date.now()
+      });
+
   
       eventBus.publish(action);
     });
@@ -287,6 +306,30 @@ function initSocket(server) {
   
     // disconnect
     socket.on("disconnect", () => {
+
+      // Build session summary
+      const summary = buildSessionSummary(socket.sessionId, {
+        userId: socket.userId,
+        role: socket.role,
+        startTime: socket.sessionStart
+      });
+
+        // Session summary log
+        console.log(
+          "SESSION SUMMARY:",
+          JSON.stringify(summary, null, 2)
+        );
+
+      // Behaviours logs  
+      const behaviours = getSessionBehaviours(socket.sessionId);
+
+      console.log(
+        "BEHAVIOUR LOGS:",
+    JSON.stringify(behaviours, null, 2)
+      );
+
+    
+
       if (!presence[userId]) return;
   
       presence[userId].state = "disconnected";

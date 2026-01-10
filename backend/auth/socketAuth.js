@@ -2,28 +2,31 @@
 const { verifyToken } = require("./jwt");
 
 function socketAuthMiddleware(socket, next) {
+  const token = socket.handshake.auth?.token;
+  const isSimulated = socket.handshake.auth?.simulated === true;
+
+  // 🔐 Simulated agents must be explicit
+  if (isSimulated) {
+    socket.userId = "SimulatedAgent";
+    socket.role = "agent";
+    socket.isSimulated = true;
+    console.log("🧪 Simulated agent connected");
+    return next();
+  }
+
+  // 🔒 Real users MUST have JWT
+  if (!token) {
+    console.warn("[AUTH] Missing JWT");
+    return next(new Error("AUTH_REQUIRED"));
+  }
+
   try {
-    const token = socket.handshake.auth?.token;
-
-    //  Allow simulated agents WITHOUT token 
-    if (!token) {
-      socket.userId = "SimulatedAgent";
-      socket.role = "agent"; // NOT admin, NOT user
-      socket.isSimulated = true;
-      console.log("⚠️ No JWT — simulated agent connection");
-      return next();
-    }
-
-    // Normal user JWT flow
     const decoded = verifyToken(token);
-    if (!decoded || !decoded.sub) {
-      return next(new Error("Invalid token payload"));
+    if (!decoded?.sub) {
+      return next(new Error("INVALID_TOKEN_PAYLOAD"));
     }
 
-    // user identity
     socket.userId = decoded.sub;
-
-    // 🔥 role extraction — THIS is the key
     socket.role = Array.isArray(decoded.roles)
       ? decoded.roles[0]
       : "user";
@@ -31,10 +34,11 @@ function socketAuthMiddleware(socket, next) {
     socket.user = decoded;
     socket.isSimulated = false;
 
-    next();
+    return next();
 
   } catch (err) {
-    next(new Error("Authentication error"));
+    console.error("[AUTH] JWT rejected:", err.message);
+    return next(new Error("INVALID_TOKEN"));
   }
 }
 

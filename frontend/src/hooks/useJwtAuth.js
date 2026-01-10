@@ -11,7 +11,7 @@ export default function useJwtAuth() {
       });
 
       const { token } = await res.json();
-      localStorage.setItem("jwt", token);
+      localStorage.setItem("token", token);
       refreshSocketAuth();
     }
 
