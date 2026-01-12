@@ -1,44 +1,180 @@
-import React, { useEffect, useState } from "react";
-import socket from "../socket/socket"; // adjust path if needed
+import React, { useState } from "react";
+import socket from "../socket/socket";
 
-export default function JobQueuePanel({ jobHistory, setJobHistory }) {
-
+export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
   const [agentMessage, setAgentMessage] = useState(null);
 
-
   return (
-    <div className="card">
-      <h2>World Build Jobs</h2>
-      {jobHistory.length === 0 && <p>No jobs yet.</p>}
-      <ul style={{marginBottom: 12}}>
-        {jobHistory.map(job =>
-          <li key={job.id} style={{marginBottom: 6}}>
-            <span style={{
-              color: job.status === 'finished' ? '#3afdca'
-                    : job.status === 'started' ? '#ffd556'
-                    : '#85aaff',
-              fontWeight: 700
-            }}>
-              {job.status.toUpperCase()}
-            </span>
-            {" — "}
-            {job.config?.color || "default"} | Size: {job.config?.size || 1}
-            {" — "}
-            <span style={{fontSize: 13, color: "#8fa2c9"}}>
-              {new Date(job.submittedAt).toLocaleTimeString()}
-            </span>
-          </li>
-        )}
-      </ul>
-      <h3 style={{color: "#85aaff", fontSize: 18}}>Agent Feedback</h3>
-      {!agentMessage && <p style={{fontSize:15, color: "#dde6fa"}}>No agent message yet.</p>}
-      {agentMessage && (
-        <div style={{fontSize:15, color: "#b3ceff"}}>
-          <strong>Type:</strong> {agentMessage.type}<br />
-          <strong>Message:</strong> {agentMessage.message}<br />
-          <strong>Score:</strong> {agentMessage.score}
+    <div
+      className={[
+        "relative backdrop-blur-2xl border rounded-3xl",
+        "shadow-[0_18px_45px_rgba(15,23,42,0.6)] transition-all duration-500 overflow-hidden",
+        "bg-gradient-to-br from-slate-950/90 via-slate-900/80 to-slate-950/95",
+        "border-slate-800/80 hover:border-sky-400/70 hover:shadow-[0_22px_60px_rgba(56,189,248,0.35)]",
+        "p-6",
+      ].join(" ")}
+    >
+      {/* Ambient glow */}
+      <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
+        <div className="absolute -top-32 -right-16 h-56 w-56 rounded-full bg-sky-500/30 blur-3xl" />
+        <div className="absolute -bottom-40 -left-10 h-60 w-60 rounded-full bg-indigo-500/25 blur-3xl" />
+      </div>
+
+      {/* Title */}
+      <div className="relative flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-sm"></span>
+            </div>
+          </div>
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent tracking-tight">
+            World Build Jobs
+          </h2>
+        </div>
+        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-white/5 text-slate-100 border border-indigo-400/40 backdrop-blur-sm flex items-center gap-1">
+          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+          {jobHistory.length} jobs
+        </span>
+      </div>
+
+      {/* Jobs empty */}
+      {jobHistory.length === 0 && (
+        <div className="relative mb-4 text-sm text-slate-400">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="w-12 h-12 rounded-2xl border border-dashed border-slate-600/70 flex items-center justify-center mb-3 bg-white/5 backdrop-blur-lg shadow-inner shadow-slate-900/60">
+              <span className="text-xl">📦</span>
+            </div>
+            <p>No jobs yet.</p>
+            <p className="text-[11px] mt-1 opacity-70">
+              Trigger a **world** build to populate this queue.
+            </p>
+          </div>
         </div>
       )}
+
+      {/* Job list */}
+      {jobHistory.length > 0 && (
+        <ul
+          className={[
+            "relative mb-4 max-h-64 overflow-y-auto rounded-2xl p-3 space-y-1.5",
+            "bg-slate-950/80 border border-slate-800/70 backdrop-blur-xl",
+          ].join(" ")}
+        >
+          {jobHistory.map((job) => {
+            const statusColor =
+              job.status === "finished"
+                ? "text-emerald-300"
+                : job.status === "started"
+                ? "text-amber-300"
+                : "text-sky-300";
+
+            const dotColor =
+              job.status === "finished"
+                ? "bg-emerald-400"
+                : job.status === "started"
+                ? "bg-amber-400"
+                : "bg-sky-400";
+
+            return (
+              <li
+                key={job.id}
+                className={[
+                  "relative flex items-center gap-3 rounded-2xl px-3 py-2 text-sm",
+                  "bg-gradient-to-br from-slate-900/80 to-slate-800/80",
+                  "border border-slate-700/70 text-slate-100",
+                  "transition-all duration-300 group",
+                  "hover:-translate-y-0.5 hover:border-indigo-500",
+                  "hover:shadow-lg hover:shadow-indigo-500/25",
+                ].join(" ")}
+              >
+                {/* Left accent */}
+                <div
+                  className={`absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-sky-400 via-indigo-400 to-purple-400 rounded-l-2xl opacity-80`}
+                />
+                {/* Glow */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                <div className="ml-2 flex-1 min-w-0 flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={[
+                          "inline-flex h-1.5 w-1.5 rounded-full",
+                          dotColor,
+                        ].join(" ")}
+                      />
+                      <span className={`font-semibold text-xs ${statusColor}`}>
+                        {job.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-200 truncate">
+                      <span className="font-mono text-sky-200">
+                        {job.config?.color || "default"}
+                      </span>{" "}
+                      <span className="text-slate-400">| Size:</span>{" "}
+                      <span className="font-mono text-emerald-200">
+                        {job.config?.size || 1}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[11px] text-slate-400 font-mono">
+                    {new Date(job.submittedAt).toLocaleTimeString()}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* Agent feedback */}
+      <div className="relative mt-2">
+        <h3 className="mb-2 text-base font-semibold bg-gradient-to-r from-sky-300 via-blue-300 to-indigo-300 bg-clip-text text-transparent">
+          Agent Feedback
+        </h3>
+
+        {!agentMessage && (
+          <p className="text-sm text-slate-300">
+            No agent **message** yet.
+          </p>
+        )}
+
+        {agentMessage && (
+          <div
+            className={[
+              "rounded-2xl border bg-gradient-to-br from-slate-900/80 to-slate-800/80",
+              "border-slate-700/70 px-4 py-3 text-sm text-blue-200",
+              "shadow-md shadow-sky-500/20",
+            ].join(" ")}
+          >
+            <div className="space-y-1">
+              <div>
+                <span className="text-[11px] uppercase tracking-wide text-sky-300">
+                  Type:
+                </span>{" "}
+                <span className="font-medium">{agentMessage.type}</span>
+              </div>
+              <div>
+                <span className="text-[11px] uppercase tracking-wide text-sky-300">
+                  Message:
+                </span>{" "}
+                <span className="text-slate-100">
+                  {agentMessage.message}
+                </span>
+              </div>
+              <div>
+                <span className="text-[11px] uppercase tracking-wide text-sky-300">
+                  Score:
+                </span>{" "}
+                <span className="font-mono text-emerald-300">
+                  {agentMessage.score}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
