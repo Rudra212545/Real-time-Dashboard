@@ -19,9 +19,9 @@ function signAction(type, payload) {
   return { ts, nonce, sig };
 }
 
-// -----------------------------
+
 // COMPONENT FOR EACH SIM USER
-// -----------------------------
+
 function SimUser({ label, userId }) {
   const [log, setLog] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -233,14 +233,14 @@ function SimUser({ label, userId }) {
   );
 }
 
-// -----------------------------
+
 // MAIN PAGE: SHOW TWO USERS
-// -----------------------------
+
 export default function UserSimPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="sim-page-container">
+    <div className="sim-page-container theme-aware">
       <button className="home-btn" onClick={() => navigate("/")}>
         🏠 Back to Dashboard
       </button>
@@ -249,7 +249,7 @@ export default function UserSimPage() {
       <p className="sim-subtitle">
         Interact with two simultaneous user sessions and observe agent behaviors in real-time
       </p>
-      
+
       <div className="sim-grid">
         <SimUser label="USER A" userId="userA" />
         <SimUser label="USER B" userId="userB" />
@@ -257,3 +257,4 @@ export default function UserSimPage() {
     </div>
   );
 }
+

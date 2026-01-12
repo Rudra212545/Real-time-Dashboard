@@ -285,13 +285,18 @@ function initSocket(server) {
         });
   
         if (status === "finished") {
+          io.to(`user:${jobObj.userId}`).emit("world_generated", {
+            config: jobObj.config,
+            jobId: jobObj.id,
+            finishedAt: Date.now()
+          });
+        
           const agentUpdate = orchestrator.evaluate({
             type: "build_finished",
             config: jobObj.config,
             userId: jobObj.userId
           });
-  
-          // FIXED: per-user agent update
+        
           if (agentUpdate) {
             io.to(`user:${jobObj.userId}`).emit("agent_update", agentUpdate);
           }

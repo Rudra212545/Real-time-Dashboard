@@ -10,7 +10,8 @@ export default function useSocketCore({
   setSignatureLog,
   setReplayAlerts,
   setHeartbeatStatus,
-  setAuthContext
+  setAuthContext,
+  setCubeConfig,
 }) {
   useEffect(() => {
     socket.on("action_update", action =>
@@ -43,6 +44,12 @@ export default function useSocketCore({
     socket.on("presence_update", data => setPresenceList({ ...data }));
     socket.on("auth_context", setAuthContext);
 
+    socket.on("job_status", (job) => {
+      if (job.status === "finished" && job.config) {
+        setCubeConfig(job.config);
+      }
+    });
+ 
     return () => socket.removeAllListeners();
   }, []);
 }

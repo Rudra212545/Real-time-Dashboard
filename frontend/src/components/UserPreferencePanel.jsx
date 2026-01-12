@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from "react";
+import useTheme from "../hooks/useTheme";
 
 export default function UserPreferencePanel() {
+  // global theme (correct)
+  const { theme, setTheme } = useTheme();
+  const darkMode = theme === "dark";
+
+  // local preferences (correct)
   const [compactMode, setCompactMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     const savedCompact = localStorage.getItem("pref_compact") === "true";
     const savedSound = localStorage.getItem("pref_sound") !== "false";
-    const savedTheme = localStorage.getItem("pref_dark") !== "false";
 
     setCompactMode(savedCompact);
     setSoundEnabled(savedSound);
-    setDarkMode(savedTheme);
 
-    applyTheme(savedTheme);
     applyDensity(savedCompact);
   }, []);
-
-  const applyTheme = (isDark) => {
-    document.documentElement.classList.toggle("dark", isDark);
-  };
 
   const applyDensity = (isCompact) => {
     const app = document.querySelector(".app-root");
@@ -42,10 +40,7 @@ export default function UserPreferencePanel() {
   };
 
   const toggleTheme = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    localStorage.setItem("pref_dark", next);
-    applyTheme(next);
+    setTheme(darkMode ? "light" : "dark");
   };
 
   const labelMuted = darkMode ? "text-slate-400" : "text-slate-500";
@@ -80,7 +75,7 @@ export default function UserPreferencePanel() {
           User Preferences
         </h2>
         <p className={`mt-1 text-xs ${labelMuted}`}>
-          Tune your **experience** in real time.
+          Tune your <strong>experience</strong> in real time.
         </p>
       </div>
 
@@ -97,7 +92,7 @@ export default function UserPreferencePanel() {
                 Compact Layout
               </div>
               <div className="text-xs text-slate-400 group-hover:text-slate-200">
-                Reduced spacing, more **density**
+                Reduced spacing, more density
               </div>
             </div>
           </div>
@@ -119,8 +114,6 @@ export default function UserPreferencePanel() {
             />
           </button>
         </label>
-
-       
 
         {/* Dark Mode */}
         <label className="flex items-center justify-between p-4 rounded-2xl border bg-white/5 hover:bg-white/10 backdrop-blur-sm border-white/10 hover:border-purple-400/40 hover:shadow-md hover:shadow-purple-500/20 transition-all duration-300 group cursor-pointer">
@@ -147,7 +140,7 @@ export default function UserPreferencePanel() {
                 Dark Mode
               </div>
               <div className="text-xs text-slate-400 group-hover:text-slate-200">
-                Eye-friendly, **contrast**-rich UI
+                Eye-friendly, contrast-rich UI
               </div>
             </div>
           </div>
@@ -194,7 +187,6 @@ export default function UserPreferencePanel() {
           >
             {darkMode ? "🌙 Dark" : "☀️ Light"}
           </span>
-         
         </div>
       </div>
     </div>

@@ -73,7 +73,7 @@ function App() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200">
+    <div className="min-h-screen">
       {/* Global gradient / glow background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -left-20 h-80 w-80 rounded-full bg-sky-500/25 blur-3xl" />

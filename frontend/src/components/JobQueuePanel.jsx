@@ -7,10 +7,11 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
   return (
     <div
       className={[
-        "relative backdrop-blur-2xl border rounded-3xl",
-        "shadow-[0_18px_45px_rgba(15,23,42,0.6)] transition-all duration-500 overflow-hidden",
-        "bg-gradient-to-br from-slate-950/90 via-slate-900/80 to-slate-950/95",
-        "border-slate-800/80 hover:border-sky-400/70 hover:shadow-[0_22px_60px_rgba(56,189,248,0.35)]",
+        "relative backdrop-blur-2xl border rounded-3xl overflow-hidden",
+        "shadow-[0_18px_45px_rgba(15,23,42,0.6)] transition-all duration-500",
+        "bg-gradient-to-br from-slate-50/90 via-white/90 to-sky-50/90",
+        "dark:from-slate-950/90 dark:via-slate-900/80 dark:to-slate-950/95",
+        "border-slate-200/80 dark:border-slate-800/80",
         "p-6",
       ].join(" ")}
     >
@@ -20,34 +21,47 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
         <div className="absolute -bottom-40 -left-10 h-60 w-60 rounded-full bg-indigo-500/25 blur-3xl" />
       </div>
 
-      {/* Title */}
-      <div className="relative flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm"></span>
-            </div>
-          </div>
-          <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent tracking-tight">
-            World Build Jobs
-          </h2>
-        </div>
-        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-white/5 text-slate-100 border border-indigo-400/40 backdrop-blur-sm flex items-center gap-1">
+      {/* Header */}
+      <div className="relative flex items-center justify-between mb-4 pb-3 border-b border-slate-200/60 dark:border-white/10">
+        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+          World Build Jobs
+        </h2>
+
+        <span
+          className="
+            px-3 py-1 text-xs font-semibold rounded-full border backdrop-blur-sm
+            flex items-center gap-1
+            bg-black/5 dark:bg-white/5
+            text-slate-900 dark:text-slate-100
+            border-indigo-400/40
+          "
+        >
           <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
           {jobHistory.length} jobs
         </span>
       </div>
 
-      {/* Jobs empty */}
+      {/* Empty state */}
       {jobHistory.length === 0 && (
-        <div className="relative mb-4 text-sm text-slate-400">
+        <div className="relative mb-4">
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="w-12 h-12 rounded-2xl border border-dashed border-slate-600/70 flex items-center justify-center mb-3 bg-white/5 backdrop-blur-lg shadow-inner shadow-slate-900/60">
+            <div
+              className="
+                w-12 h-12 rounded-2xl border border-dashed
+                border-slate-300/70 dark:border-slate-600/70
+                flex items-center justify-center mb-3
+                bg-black/5 dark:bg-white/5
+                backdrop-blur-lg shadow-inner
+                shadow-slate-200/40 dark:shadow-slate-900/60
+              "
+            >
               <span className="text-xl">📦</span>
             </div>
-            <p>No jobs yet.</p>
-            <p className="text-[11px] mt-1 opacity-70">
-              Trigger a **world** build to populate this queue.
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              No jobs yet.
+            </p>
+            <p className="text-[11px] mt-1 text-slate-400">
+              Trigger a world build to populate this queue.
             </p>
           </div>
         </div>
@@ -58,16 +72,18 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
         <ul
           className={[
             "relative mb-4 max-h-64 overflow-y-auto rounded-2xl p-3 space-y-1.5",
-            "bg-slate-950/80 border border-slate-800/70 backdrop-blur-xl",
+            "bg-white/70 dark:bg-slate-950/80",
+            "border border-slate-200/70 dark:border-slate-800/70",
+            "backdrop-blur-xl",
           ].join(" ")}
         >
           {jobHistory.map((job) => {
             const statusColor =
               job.status === "finished"
-                ? "text-emerald-300"
+                ? "text-emerald-600 dark:text-emerald-300"
                 : job.status === "started"
-                ? "text-amber-300"
-                : "text-sky-300";
+                ? "text-amber-600 dark:text-amber-300"
+                : "text-sky-600 dark:text-sky-300";
 
             const dotColor =
               job.status === "finished"
@@ -80,45 +96,43 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
               <li
                 key={job.id}
                 className={[
-                  "relative flex items-center gap-3 rounded-2xl px-3 py-2 text-sm",
-                  "bg-gradient-to-br from-slate-900/80 to-slate-800/80",
-                  "border border-slate-700/70 text-slate-100",
-                  "transition-all duration-300 group",
+                  "relative flex items-center gap-3 rounded-2xl px-3 py-2 text-sm group",
+                  "bg-gradient-to-br from-white/80 to-slate-100/80",
+                  "dark:from-slate-900/80 dark:to-slate-800/80",
+                  "border border-slate-200/70 dark:border-slate-700/70",
+                  "text-slate-900 dark:text-slate-100",
+                  "transition-all duration-300",
                   "hover:-translate-y-0.5 hover:border-indigo-500",
                   "hover:shadow-lg hover:shadow-indigo-500/25",
                 ].join(" ")}
               >
-                {/* Left accent */}
-                <div
-                  className={`absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-sky-400 via-indigo-400 to-purple-400 rounded-l-2xl opacity-80`}
-                />
-                {/* Glow */}
+                {/* Accent */}
+                <div className="absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-sky-400 via-indigo-400 to-purple-400 rounded-l-2xl opacity-80" />
+
+                {/* Hover glow */}
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                 <div className="ml-2 flex-1 min-w-0 flex items-center justify-between gap-3">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={[
-                          "inline-flex h-1.5 w-1.5 rounded-full",
-                          dotColor,
-                        ].join(" ")}
-                      />
+                      <span className={`inline-flex h-1.5 w-1.5 rounded-full ${dotColor}`} />
                       <span className={`font-semibold text-xs ${statusColor}`}>
                         {job.status.toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-200 truncate">
-                      <span className="font-mono text-sky-200">
+
+                    <div className="text-xs truncate">
+                      <span className="font-mono text-sky-600 dark:text-sky-200">
                         {job.config?.color || "default"}
                       </span>{" "}
                       <span className="text-slate-400">| Size:</span>{" "}
-                      <span className="font-mono text-emerald-200">
+                      <span className="font-mono text-emerald-600 dark:text-emerald-200">
                         {job.config?.size || 1}
                       </span>
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] text-slate-400 font-mono">
+
+                  <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     {new Date(job.submittedAt).toLocaleTimeString()}
                   </span>
                 </div>
@@ -130,44 +144,47 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
 
       {/* Agent feedback */}
       <div className="relative mt-2">
-        <h3 className="mb-2 text-base font-semibold bg-gradient-to-r from-sky-300 via-blue-300 to-indigo-300 bg-clip-text text-transparent">
+        <h3 className="mb-2 text-base font-semibold bg-gradient-to-r from-sky-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
           Agent Feedback
         </h3>
 
         {!agentMessage && (
-          <p className="text-sm text-slate-300">
-            No agent **message** yet.
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            No agent message yet.
           </p>
         )}
 
         {agentMessage && (
           <div
-            className={[
-              "rounded-2xl border bg-gradient-to-br from-slate-900/80 to-slate-800/80",
-              "border-slate-700/70 px-4 py-3 text-sm text-blue-200",
-              "shadow-md shadow-sky-500/20",
-            ].join(" ")}
+            className="
+              rounded-2xl border px-4 py-3 text-sm
+              bg-gradient-to-br from-white/80 to-slate-100/80
+              dark:from-slate-900/80 dark:to-slate-800/80
+              border-slate-200 dark:border-slate-700/70
+              text-slate-700 dark:text-blue-200
+              shadow-md shadow-sky-500/20
+            "
           >
             <div className="space-y-1">
               <div>
-                <span className="text-[11px] uppercase tracking-wide text-sky-300">
+                <span className="text-[11px] uppercase tracking-wide text-sky-500">
                   Type:
                 </span>{" "}
                 <span className="font-medium">{agentMessage.type}</span>
               </div>
               <div>
-                <span className="text-[11px] uppercase tracking-wide text-sky-300">
+                <span className="text-[11px] uppercase tracking-wide text-sky-500">
                   Message:
                 </span>{" "}
-                <span className="text-slate-100">
+                <span className="text-slate-900 dark:text-slate-100">
                   {agentMessage.message}
                 </span>
               </div>
               <div>
-                <span className="text-[11px] uppercase tracking-wide text-sky-300">
+                <span className="text-[11px] uppercase tracking-wide text-sky-500">
                   Score:
                 </span>{" "}
-                <span className="font-mono text-emerald-300">
+                <span className="font-mono text-emerald-600 dark:text-emerald-300">
                   {agentMessage.score}
                 </span>
               </div>
