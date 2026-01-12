@@ -158,38 +158,38 @@ function initSocket(server) {
     //  PRESENCE HANDLER 
     socket.on("presence", (state) => {
       if (!socket.userId) return;
-  
+    
+      //  SAFETY CHECK 
+      if (!presence[userId]) {
+        console.warn(`[PRESENCE] Missing presence entry for ${userId}`);
+        return;
+      }
+    
       presence[userId].state = state;
       presence[userId].lastActiveAt = Date.now();
-  
+    
       emitPresenceScoped();
-  
-  
+    
       if (state === "idle") {
         const us = ensureUserState(userId);
-      
-        // If user is already idle, DO NOT retrigger agents
         if (us.isIdle === true) return;
-      
-        // First time idle → mark idle + trigger agents
+    
         us.isIdle = true;
-      
+    
         const agentResult = orchestrator.evaluate({
           type: "idle",
           userId
         });
-      
+    
         if (agentResult) io.to(`user:${userId}`).emit("agent_update", agentResult);
         return;
       }
-      
-  
-      // active → reset idle timer
+    
       const us = ensureUserState(userId);
       us.isIdle = false;
       scheduleIdleCheck(userId);
     });
-  
+    
     // ACTIONS HANDLER
     socket.on("action", (actionData) => {
       if (!socket.userId) return;
