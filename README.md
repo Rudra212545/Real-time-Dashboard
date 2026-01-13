@@ -132,7 +132,7 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 
 
 <p align="center">
-  <img src="./MD/architecture.png" width="720" />
+  <img src="./docs/telemetry/architecture.png" width="720" />
 </p>
 
 

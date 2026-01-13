@@ -25,11 +25,10 @@ class Orchestrator {
       return null;
     }
 
-    console.log("\n====================================================");
     console.log(` ORCHESTRATOR — USER ${userId}`);
     console.log("Incoming Action:");
     console.log(JSON.stringify(action, null, 2));
-    console.log("====================================================\n");
+
 
     const results = [];
 
@@ -65,10 +64,10 @@ class Orchestrator {
     results.sort((a, b) => PRIORITY.indexOf(a.agent) - PRIORITY.indexOf(b.agent));
     const winner = results[0];
 
-    console.log("----------------------------------------------------");
+
     console.log(` FINAL DECISION for User ${userId}`);
     console.log(JSON.stringify(winner, null, 2));
-    console.log("====================================================\n");
+  
 
     return winner;
   }

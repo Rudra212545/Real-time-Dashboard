@@ -1,15 +1,16 @@
 import { io } from "socket.io-client";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function getToken() {
   return localStorage.getItem("token");
 }
 
-const socket = io("http://localhost:3000", {
+const socket = io(BACKEND_URL, {
   autoConnect: false,
   transports: ["websocket"],
   auth: {
-    token: getToken()
-  }
+    token: getToken(),
+  },
 });
 
 // expose socket for debugging

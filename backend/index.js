@@ -11,7 +11,12 @@ const app = express();
 const server = createServer(app);
 
 // middleware
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_ORIGIN,
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // routes
@@ -27,8 +32,8 @@ mongoose.connect(process.env.MONGO_URI)
 
 // sockets
 initSocket(server);
-
+const PORT = process.env.PORT;
 // server
-server.listen(3000, () => {
-  console.log("server running at http://localhost:3000");
+server.listen(PORT, () => {
+  console.log(`server running at PORT : ${PORT}`);
 });
