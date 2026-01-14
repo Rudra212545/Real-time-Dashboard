@@ -240,7 +240,7 @@ export default function UserSimPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="sim-page-container theme-aware">
+    <div className="sim-page-container">
       <button className="home-btn" onClick={() => navigate("/")}>
         🏠 Back to Dashboard
       </button>
