@@ -1,6 +1,6 @@
 /* Full page background - matching main dashboard */
 .sim-page-container {
-    min-height: 100vh;
+    min-height:220vh;
     padding: 48px 32px;
     max-width: 1600px;
     margin: 0 auto;
@@ -8,6 +8,11 @@
     color: #f4f8ff;
     position: relative;
     z-index: 1;
+    background: radial-gradient(
+    circle at top,
+    #0f172a 0%,
+    #020617 70%
+  );
   }
   
   /* Title styling */

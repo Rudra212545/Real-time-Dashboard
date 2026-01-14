@@ -7,8 +7,9 @@ export default function CubePreview({ config = {} }) {
   const cubeRef = useRef(null);
   const frameRef = useRef(null);
 
-  // Create scene ONCE
   useEffect(() => {
+    if (!mountRef.current) return;
+
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
@@ -17,6 +18,7 @@ export default function CubePreview({ config = {} }) {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(280, 280);
     renderer.setPixelRatio(window.devicePixelRatio || 1);
+
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -40,15 +42,27 @@ export default function CubePreview({ config = {} }) {
     animate();
 
     return () => {
-      cancelAnimationFrame(frameRef.current);
+      // 🛑 cancel animation first
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+
+      // 🧹 dispose Three.js resources
       geometry.dispose();
       material.dispose();
       renderer.dispose();
-      mountRef.current.innerHTML = "";
+
+      // 🧠 remove canvas safely
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+
+      cubeRef.current = null;
+      rendererRef.current = null;
     };
   }, []);
 
-  // Mutate cube on config change
+  // React to config changes
   useEffect(() => {
     if (!cubeRef.current) return;
 

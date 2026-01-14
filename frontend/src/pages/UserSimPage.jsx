@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import CryptoJS from "crypto-js";
-import "./UserSimPage.css"; // Import external CSS
+import "./UserSimPage.css"; 
 
-// -----------------------------
+
 // UTIL: SIGN ACTION
-// -----------------------------
+
 function signAction(type, payload) {
   const ts = Date.now();
   const nonce = Math.random().toString(36).substring(2, 12);
@@ -30,51 +30,50 @@ function SimUser({ label, userId }) {
   const socketRef = useRef(null);
   const lastActiveTime = useRef(Date.now());
 
-  // -----------------------------
+
   // INIT: Fetch User Token
-  // -----------------------------
+
   useEffect(() => {
+    let socket;
+  
     async function init() {
-      // 1) GET JWT
       const res = await fetch("http://localhost:3000/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
-
+  
       const { token } = await res.json();
-
-      // 2) Create socket for this mini-user
-      const s = io("http://localhost:3000", {
+  
+      socket = io("http://localhost:3000", {
         auth: { token },
         transports: ["websocket"],
       });
-
-      socketRef.current = s;
-
-      // 3) Listeners
-      s.on("connect", () =>
-        appendLog(`Connected as ${userId} (socket=${s.id})`)
+  
+      socketRef.current = socket;
+  
+      socket.on("connect", () =>
+        appendLog(`Connected as ${userId} (socket=${socket.id})`)
       );
-
-      s.on("action_update", (a) => {
+  
+      socket.on("action_update", (a) => {
         appendLog(`Action: ${a.type}`);
       });
-
-      s.on("agent_update", (a) => {
+  
+      socket.on("agent_update", (a) => {
         appendLog(`Agent → ${a.agent}: ${a.message}`);
         setAgents((prev) => [a, ...prev].slice(0, 20));
       });
-
-      s.on("hint_deprioritized", (a) => {
+  
+      socket.on("hint_deprioritized", (a) => {
         appendLog(`Hint Deprioritized → lockedFor = ${a.lockedFor}`);
         setAgents((prev) => [
           { agent: "HintAgent", reason: "spam_collision", ...a },
           ...prev,
         ]);
       });
-
-      s.on("nav_idle_prompt", () => {
+  
+      socket.on("nav_idle_prompt", () => {
         appendLog("NavAgent: Idle Timeout Triggered");
         setAgents((prev) => [
           {
@@ -85,27 +84,28 @@ function SimUser({ label, userId }) {
           ...prev,
         ]);
       });
-
-      s.on("presence_update", (data) => {
-        appendLog(`Presence Update Received`);
-      });
-
-      return () => s.disconnect();
     }
-
+  
     init();
+  
+    return () => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    };
   }, [userId]);
+  
 
-  // -----------------------------
   // HELPER: ADD LOG LINE
-  // -----------------------------
+
   const appendLog = (txt) => {
     setLog((prev) => [txt, ...prev].slice(0, 30));
   };
 
-  // -----------------------------
+
   // SEND ACTIONS
-  // -----------------------------
+
   const sendAction = (type, payload) => {
     const s = socketRef.current;
     if (!s) return;
@@ -114,9 +114,9 @@ function SimUser({ label, userId }) {
     s.emit("action", { type, payload, ts, nonce, sig });
   };
 
-  // -----------------------------
+
   // AUTO-IDLE BEHAVIOR
-  // -----------------------------
+
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -147,9 +147,9 @@ function SimUser({ label, userId }) {
     }
   };
 
-  // -----------------------------
+ 
   // UI
-  // -----------------------------
+
   return (
     <div
       className="sim-user"
