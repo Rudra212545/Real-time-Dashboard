@@ -232,20 +232,6 @@ Preferences persist via localStorage.
 
 ---
 
-## **HHG Reflection**
 
-### **Humility**
-
-I underestimated how difficult it would be to combine real-time systems, multi-user state, and multi-agent logic while maintaining correctness. Even simple rules became complex when I had to guarantee no interference between agents, no broken sockets, and no inconsistent UI states.
-
-### **Honesty**
-
-I initially misunderstood how replay protection and signature validation should work in a live WebSocket environment. I thought just attaching a signature was enough, but handling nonce rotation, timestamp windows, and invalidation rules forced me to rethink and study digital signature flows properly.
-
-### **Gratitude**
-
-The mentor notes, embedded learning resources, and structured day-by-day tasks helped me immensely. They guided me whenever I was stuck — especially in areas like agent orchestration, microservice heartbeats, and event-driven architecture. These resources made the entire project achievable.
-
----
 
 
