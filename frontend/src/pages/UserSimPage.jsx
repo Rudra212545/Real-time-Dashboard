@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import CryptoJS from "crypto-js";
 import "./UserSimPage.css"; 
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 // UTIL: SIGN ACTION
 
@@ -37,7 +37,7 @@ function SimUser({ label, userId }) {
     let socket;
   
     async function init() {
-      const res = await fetch("http://localhost:3000/auth/token", {
+      const res = await fetch(`${BACKEND_URL}/auth/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -45,7 +45,7 @@ function SimUser({ label, userId }) {
   
       const { token } = await res.json();
   
-      socket = io("http://localhost:3000", {
+      socket = io(`${BACKEND_URL}`, {
         auth: { token },
         transports: ["websocket"],
       });
