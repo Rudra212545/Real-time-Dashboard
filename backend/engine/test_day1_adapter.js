@@ -2,7 +2,7 @@ const { createWorld } = require("./adapter/worldAdapter.js");
 const { createScene } = require("./adapter/sceneAdapter.js");
 const { createEntity } = require("./adapter/entityAdapter.js");
 
-// ---- DAY 1 SMOKE TEST ----
+//  DAY 1 SMOKE TEST 
 
 // World
 const world = createWorld({
