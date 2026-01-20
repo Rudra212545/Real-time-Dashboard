@@ -1,0 +1,127 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+  
+    "required": ["schema_version", "world", "scene", "entities"],
+  
+    "properties": {
+      "schema_version": {
+        "type": "string"
+      },
+  
+      "world": {
+        "type": "object",
+        "required": ["id", "name", "gravity"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "gravity": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      },
+  
+      "scene": {
+        "type": "object",
+        "required": ["id", "ambientLight", "skybox"],
+        "properties": {
+          "id": { "type": "string" },
+          "ambientLight": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "skybox": { "type": "string" }
+        }
+      },
+  
+      "entities": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["id", "type", "transform", "material", "components"],
+          "properties": {
+            "id": { "type": "string" },
+            "type": {
+              "type": "string",
+              "enum": ["player", "npc", "object"]
+            },
+  
+            "transform": {
+              "type": "object",
+              "required": ["position", "rotation", "scale"],
+              "properties": {
+                "position": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "rotation": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "scale": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            },
+  
+            "material": {
+              "type": "object",
+              "required": ["shader", "texture", "color"],
+              "properties": {
+                "shader": { "type": "string" },
+                "texture": { "type": "string" },
+                "color": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            },
+  
+            "components": {
+              "type": "object",
+              "required": ["mesh", "collider"],
+              "properties": {
+                "mesh": { "type": "string" },
+                "collider": {
+                  "type": "string",
+                  "enum": ["box", "sphere", "none"]
+                },
+                "script": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+  
+      "quests": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "triggerEntity", "goal"],
+          "properties": {
+            "id": { "type": "string" },
+            "triggerEntity": { "type": "string" },
+            "goal": { "type": "string" }
+          }
+        }
+      }
+    },
+  
+    "additionalProperties": false
+  }
+  
