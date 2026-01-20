@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const socketAuth = require("./auth/socketAuth");
 const { registerBusSubscribers } = require("./busSubscribers");
+const {setupEngineSocket} = require("./engine/engine_socket");
 
 const orchestrator = require("./orchestrator/multiAgentOrchestrator");
 const { userStates } = require("./state/userStates");
@@ -25,6 +26,10 @@ function initSocket(server) {
   const presence = {};
 
   io.use(socketAuth);
+
+
+  // Attaching engine namespace 
+  setupEngineSocket(io);
 
   //  EventBus subscribers MUST be registered ONCE here
   registerBusSubscribers(io, orchestrator, userStates);
