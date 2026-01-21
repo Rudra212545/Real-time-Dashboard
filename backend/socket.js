@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 const socketAuth = require("./auth/socketAuth");
 const { registerBusSubscribers } = require("./busSubscribers");
-const {setupEngineSocket} = require("./engine/engine_socket");
+
 
 const orchestrator = require("./orchestrator/multiAgentOrchestrator");
 const { userStates } = require("./state/userStates");
@@ -16,6 +16,8 @@ const { AGENTS } = require("./config");
 const eventBus = require("./eventBus");
 const {recordBehaviour, getSessionBehaviours} = require("./telemetry/behaviourRecorder");
 const {buildSessionSummary} = require("./telemetry/sessionSummary");
+const validateWorldSpec = require("./engine/world_spec_validator");
+const {buildEngineJobs} = require("./engine/engine_job_queue");
 
 function initSocket(server) {
 
@@ -28,8 +30,7 @@ function initSocket(server) {
   io.use(socketAuth);
 
 
-  // Attaching engine namespace 
-  setupEngineSocket(io);
+ 
 
   //  EventBus subscribers MUST be registered ONCE here
   registerBusSubscribers(io, orchestrator, userStates);
@@ -266,104 +267,79 @@ function initSocket(server) {
     attachHeartbeatHandlers(socket);
   
     //JOB QUEUE
-    socket.on("generate_world", (payload) => {
-      const { config, submittedAt } = payload;
+// JOB QUEUE
+socket.on("generate_world", (payload) => {
+  console.log("generate_world event received:", payload);
+
+  const { config, submittedAt } = payload;
+  let worldSpec;
+
+  try {
+    worldSpec = validateWorldSpec(config);
+    console.log("[WORLD SPEC VALIDATED]");
+  } catch (err) {
+    console.error("[WORLD SPEC VALIDATION FAILED]");
+    console.error(err.message);
+    return;
+  }
   
-      const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
-  
-      const job = {
-        id: jobId,
-        userId: socket.userId,
-        config,
-        submittedAt
-      };
-  
-      addJob(job, (jobObj, status) => {
-  
-        // FIXED: per-user job_status emit
-        io.to(`user:${jobObj.userId}`).emit("job_status", {
-          id: jobObj.id,
-          status,
-          config: jobObj.config,
-          submittedAt: jobObj.submittedAt,
+  // Now it is SAFE to build engine jobs
+  const engineJobs = buildEngineJobs(worldSpec);
+  // Unique job batch id
+  const jobBatchId =
+    Date.now().toString(36) +
+    Math.random().toString(36).substring(2, 5);
+
+
+  engineJobs.forEach((engineJob) => {
+    const job = {
+      id: `${jobBatchId}:${engineJob.jobType}`,
+      userId: socket.userId,
+      jobType: engineJob.jobType,
+      payload: engineJob.payload,
+      submittedAt
+    };
+
+    addJob(job, (jobObj, status) => {
+      io.to(`user:${jobObj.userId}`).emit("job_status", {
+        id: jobObj.id,
+        jobType: jobObj.jobType,
+        status,
+        submittedAt: jobObj.submittedAt,
+        userId: jobObj.userId
+      });
+
+      
+
+
+      if (status === "finished") {
+        io.to(`user:${jobObj.userId}`).emit("engine_job_finished", {
+          jobType: jobObj.jobType,
+          jobId: jobObj.id,
+          finishedAt: Date.now()
+        });
+
+        // OPTIONAL: keep agent pipeline intact
+        orchestrator.evaluate({
+          type: "build_finished",
+          jobType: jobObj.jobType,
           userId: jobObj.userId
         });
-  
-        if (status === "finished") {
-          io.to(`user:${jobObj.userId}`).emit("world_generated", {
-            config: jobObj.config,
-            jobId: jobObj.id,
-            finishedAt: Date.now()
-          });
-        
-          const agentUpdate = orchestrator.evaluate({
-            type: "build_finished",
-            config: jobObj.config,
-            userId: jobObj.userId
-          });
-        
-          if (agentUpdate) {
-            io.to(`user:${jobObj.userId}`).emit("agent_update", agentUpdate);
-          }
-        }
-      });
-    });
-  
-    // ping-pong
-    socket.on("ping", (data) => {
-      socket.emit("pong", { reply: "pong", received: data });
-    });
-  
-    // disconnect
-    socket.on("disconnect", () => {
-
-      // Build session summary
-      const summary = buildSessionSummary(socket.sessionId, {
-        userId: socket.userId,
-        role: socket.role,
-        startTime: socket.sessionStart
-      });
-
-        // Session summary log
-        console.log(
-          "SESSION SUMMARY:",
-          JSON.stringify(summary, null, 2)
-        );
-
-      // Behaviours logs  
-      const behaviours = getSessionBehaviours(socket.sessionId);
-
-      console.log(
-        "BEHAVIOUR LOGS:",
-    JSON.stringify(behaviours, null, 2)
-      );
-
-    
-
-      if (!presence[userId]) return;
-  
-      presence[userId].state = "disconnected";
-      presence[userId].lastActiveAt = Date.now();
-  
-      emitPresenceScoped();
-  
-  
-      // clear idle timer
-      if (userStates[userId] && userStates[userId].idleTimer) {
-        clearTimeout(userStates[userId].idleTimer);
-        userStates[userId].idleTimer = null;
+       
       }
-  
-      // delete after 10s
-      setTimeout(() => {
-        if (presence[userId] && presence[userId].state === "disconnected") {
-          delete presence[userId];
-          emitPresenceScoped();
-  
-        }
-      }, 10000);
     });
   });
+});
+
+  socket.on("disconnect", () => {
+    console.log(`socket disconnected: ${socket.id}`);
+    if (presence[userId]) {
+      presence[userId].state = "disconnected";
+      emitPresenceScoped();
+    }
+  });
+});
+
 }
 
 module.exports = { initSocket };

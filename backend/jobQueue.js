@@ -3,6 +3,7 @@ const queue = [];
 let processing = false;
 
 function addJob(job, onStatus) {
+  console.log("[QUEUE RECEIVED]", job.jobType);
   queue.push(job);
   onStatus(job, "queued");
   processQueue(onStatus);
