@@ -1,345 +1,353 @@
-const { Server } = require("socket.io");
-const socketAuth = require("./auth/socketAuth");
-const { registerBusSubscribers } = require("./busSubscribers");
+  const { Server } = require("socket.io");
+  const socketAuth = require("./auth/socketAuth");
+  const { registerBusSubscribers } = require("./busSubscribers");
 
 
-const orchestrator = require("./orchestrator/multiAgentOrchestrator");
-const { userStates } = require("./state/userStates");
+  const orchestrator = require("./orchestrator/multiAgentOrchestrator");
+  const { userStates } = require("./state/userStates");
 
-const { verifyActionSignature } = require("./auth/signature");
-const { checkAndConsumeNonce } = require("./security/nonceStore");
-const { attachHeartbeatHandlers, startHeartbeatMonitor } = require("./security/heartbeat");
-const { addJob } = require("./jobQueue");
-const { rotateNonce } = require("./security/nonce_registry");
-const { processHeartbeat } = require("./security/heartbeat_monitor");
-const { AGENTS } = require("./config");
-const eventBus = require("./eventBus");
-const {recordBehaviour, getSessionBehaviours} = require("./telemetry/behaviourRecorder");
-const {buildSessionSummary} = require("./telemetry/sessionSummary");
-const validateWorldSpec = require("./engine/world_spec_validator");
-const {buildEngineJobs} = require("./engine/engine_job_queue");
+  const { verifyActionSignature } = require("./auth/signature");
+  const { checkAndConsumeNonce } = require("./security/nonceStore");
+  const { attachHeartbeatHandlers, startHeartbeatMonitor } = require("./security/heartbeat");
+  const { addJob, setEngineConnected } = require("./jobQueue");
+  const { rotateNonce } = require("./security/nonce_registry");
+  const { processHeartbeat } = require("./security/heartbeat_monitor");
+  const { AGENTS } = require("./config");
+  const eventBus = require("./eventBus");
+  const {recordBehaviour, getSessionBehaviours} = require("./telemetry/behaviourRecorder");
+  const {buildSessionSummary} = require("./telemetry/sessionSummary");
+  const validateWorldSpec = require("./engine/world_spec_validator");
+  const {buildEngineJobs} = require("./engine/engine_job_queue");
 
-function initSocket(server) {
+  function initSocket(server) {
 
-  const io = new Server(server, {
-    cors: { origin: "http://localhost:5173" }
-  });
-
-  const presence = {};
-
-  io.use(socketAuth);
-
-
- 
-
-  //  EventBus subscribers MUST be registered ONCE here
-  registerBusSubscribers(io, orchestrator, userStates);
-
-  startHeartbeatMonitor({
-    presence,
-    markInactive: (userId) => {
-      if (presence[userId]) {
-        presence[userId].state = "inactive";
-        presence[userId].lastActiveAt = Date.now();
-        emitPresenceScoped();
-      }
-    }
-  });
-
-  function emitPresenceScoped() {
-    io.sockets.sockets.forEach((s) => {
-      if (!s.userId) return;
-      s.emit("presence_update",
-        s.role === "admin" ? presence : { [s.userId]: presence[s.userId] }
-      );
+    const io = new Server(server, {
+      cors: { origin: "http://localhost:5173" }
     });
-  }
 
-  function ensureUserState(userId) {
-    if (!userStates[userId]) {
-      userStates[userId] = {
-        userId,
-        actions: [],
-        lastActionAt: Date.now(),
-        isIdle: false,
-        spamCount: 0,
-        idleTimer: null
-      };
-    }
-    return userStates[userId];
-  }
+    const presence = {};
 
-  function scheduleIdleCheck(userId, ms = 5000) {
-    const us = ensureUserState(userId);
-    clearTimeout(us.idleTimer);
+    io.use(socketAuth);
 
-    us.idleTimer = setTimeout(() => {
-      us.isIdle = true;
-      io.to(`user:${userId}`).emit("nav_idle_prompt", { userId });
-      const r = orchestrator.evaluate({ type: "idle", userId });
-      if (r) io.to(`user:${userId}`).emit("agent_update", r);
-    }, ms);
-  }
 
-  io.on('connection', (socket) => {
-    console.log(`socket connected: ${socket.id} userId=${socket.userId}`);
   
-    const rawUserId = socket.userId;
-    const userId =
-      typeof rawUserId === "object"
-        ? rawUserId.userId
-        : rawUserId;
-    
-    socket.userId = userId;
-  
-    const sessionId = `${userId}:${Date.now()}`;
-    socket.sessionId = sessionId;
-    socket.sessionStart = Date.now();
 
-    
-  
-    if (!userId) {
-      console.warn("Unauthenticated socket, disconnecting:", socket.id);
-      socket.disconnect(true);
-      return;
-    }
-  
-    const userAgent = socket.handshake.headers["user-agent"] || "";
-  
-    const device =
-      /mobile|android|iphone|ipad/i.test(userAgent)
-        ? "mobile"
-        : "desktop";
-  
-  
-  
-        socket.emit("auth_context", {
-          userId: socket.userId,
-          role: socket.role,
-          isSimulated: !!socket.isSimulated
-        });
-  
-  
-    // assign each connection to user room
-    socket.join(`user:${userId}`);
-  
-    // nonces per agent
-    const agentNonces = {};
-    for (const agentId of Object.keys(AGENTS)) {
-      agentNonces[agentId] = rotateNonce(agentId);
-    }
-    socket.emit("agent_nonce", agentNonces);
-  
-    // secure agent heartbeat
-    socket.on("agent_heartbeat", (hb) => {
-      const result = processHeartbeat(hb);
-      if (!result.ok) {
-        console.warn(`Agent heartbeat rejected (${hb.agentId}): ${result.reason}`);
-        return socket.emit("agent_heartbeat_result", { ok: false, reason: result.reason });
+    //  EventBus subscribers MUST be registered ONCE here
+    registerBusSubscribers(io, orchestrator, userStates);
+
+    startHeartbeatMonitor({
+      presence,
+      markInactive: (userId) => {
+        if (presence[userId]) {
+          presence[userId].state = "inactive";
+          presence[userId].lastActiveAt = Date.now();
+          emitPresenceScoped();
+        }
       }
-      console.log(`Secure heartbeat accepted from ${hb.agentId}`);
-      socket.emit("agent_heartbeat_result", { ok: true });
     });
-  
-    // initialize presence
-    presence[userId] = {
-      userId,
-      role: socket.role,
-      device,
-      socketId: socket.id,
-      state: "active",
-      connectedAt: Date.now(),
-      lastActiveAt: Date.now()
-    };
-    
-  
-    emitPresenceScoped();
-  
-  
-    // ensure user state exists
-    ensureUserState(userId);
-    userStates[userId].lastActionAt = Date.now();
-    scheduleIdleCheck(userId);
-  
-    //  PRESENCE HANDLER 
-    socket.on("presence", (state) => {
-      if (!socket.userId) return;
-    
-      //  SAFETY CHECK 
-      if (!presence[userId]) {
-        console.warn(`[PRESENCE] Missing presence entry for ${userId}`);
-        return;
-      }
-    
-      presence[userId].state = state;
-      presence[userId].lastActiveAt = Date.now();
-    
-      emitPresenceScoped();
-    
-      if (state === "idle") {
-        const us = ensureUserState(userId);
-        if (us.isIdle === true) return;
-    
-        us.isIdle = true;
-    
-        const agentResult = orchestrator.evaluate({
-          type: "idle",
-          userId
-        });
-    
-        if (agentResult) io.to(`user:${userId}`).emit("agent_update", agentResult);
-        return;
-      }
-    
-      const us = ensureUserState(userId);
-      us.isIdle = false;
-      scheduleIdleCheck(userId);
-    });
-    
-    // ACTIONS HANDLER
-    socket.on("action", (actionData) => {
-      if (!socket.userId) return;
-  
-      const { type, payload, ts, nonce, sig } = actionData;
-  
-      if (Math.abs(Date.now() - ts) > 15000) {
-        return socket.emit("action_error", { error: "timestamp_expired" });
-      }
-  
-      if (!verifyActionSignature({ type, payload, ts, nonce, sig })) {
-        console.log(`[SECURITY] Signature invalid — user=${socket.userId}`);
-        return socket.emit("action_error", { error: "invalid_signature" });
-      }
-  
-      if (!checkAndConsumeNonce(socket.userId, nonce)) {
-        console.log(`[SECURITY] Nonce replay — user=${socket.userId}`);
-        return socket.emit("action_error", { error: "replay_detected" });
-      }
-  
-      // trusted action
-      const action = {
-        userId: socket.userId,
-        sessionId: socket.sessionId,
-        type,
-        payload,
-        clientTs: ts
-      };
-      const us = ensureUserState(action.userId);
-      us.actions.push(action);
-  
-      us.isIdle = false;
-      us.lastActionAt = Date.now();
-      scheduleIdleCheck(action.userId);
-  
-      if (type === "click") {
-        const now = Date.now();
-        us.actions = us.actions.filter(
-          (a) => !(a.type === "click" && now - a.timestamp > 1000)
+
+    function emitPresenceScoped() {
+      io.sockets.sockets.forEach((s) => {
+        if (!s.userId) return;
+        s.emit("presence_update",
+          s.role === "admin" ? presence : { [s.userId]: presence[s.userId] }
         );
-        us.spamCount = us.actions.filter((a) => a.type === "click").length;
-      } else {
-        us.spamCount = 0;
+      });
+    }
+
+    function ensureUserState(userId) {
+      if (!userStates[userId]) {
+        userStates[userId] = {
+          userId,
+          actions: [],
+          lastActionAt: Date.now(),
+          isIdle: false,
+          spamCount: 0,
+          idleTimer: null
+        };
       }
-  
-      if (presence[userId]) {
-        presence[userId].lastActiveAt = Date.now();
-        emitPresenceScoped();
-      }
+      return userStates[userId];
+    }
+
+    function scheduleIdleCheck(userId, ms = 5000) {
+      const us = ensureUserState(userId);
+      clearTimeout(us.idleTimer);
+
+      us.idleTimer = setTimeout(() => {
+        us.isIdle = true;
+        io.to(`user:${userId}`).emit("nav_idle_prompt", { userId });
+        const r = orchestrator.evaluate({ type: "idle", userId });
+        if (r) io.to(`user:${userId}`).emit("agent_update", r);
+      }, ms);
+    }
+
+    io.on('connection', (socket) => {
+      console.log(`socket connected: ${socket.id} userId=${socket.userId}`);
+    
+      const rawUserId = socket.userId;
+      const userId =
+        typeof rawUserId === "object"
+          ? rawUserId.userId
+          : rawUserId;
       
-      // Record behaviour
-      recordBehaviour({
-        sessionId: socket.sessionId,
-        userId: socket.userId,
+      socket.userId = userId;
+    
+      const sessionId = `${userId}:${Date.now()}`;
+      socket.sessionId = sessionId;
+      socket.sessionStart = Date.now();
+
+      
+    
+      if (!userId) {
+        console.warn("Unauthenticated socket, disconnecting:", socket.id);
+        socket.disconnect(true);
+        return;
+      }
+    
+      const userAgent = socket.handshake.headers["user-agent"] || "";
+    
+      const device =
+        /mobile|android|iphone|ipad/i.test(userAgent)
+          ? "mobile"
+          : "desktop";
+    
+    
+    
+          socket.emit("auth_context", {
+            userId: socket.userId,
+            role: socket.role,
+            isSimulated: !!socket.isSimulated
+          });
+    
+    
+      // assign each connection to user room
+      socket.join(`user:${userId}`);
+    
+      // nonces per agent
+      const agentNonces = {};
+      for (const agentId of Object.keys(AGENTS)) {
+        agentNonces[agentId] = rotateNonce(agentId);
+      }
+      socket.emit("agent_nonce", agentNonces);
+    
+      // secure agent heartbeat
+      socket.on("agent_heartbeat", (hb) => {
+        const result = processHeartbeat(hb);
+        if (!result.ok) {
+          console.warn(`Agent heartbeat rejected (${hb.agentId}): ${result.reason}`);
+          return socket.emit("agent_heartbeat_result", { ok: false, reason: result.reason });
+        }
+        console.log(`Secure heartbeat accepted from ${hb.agentId}`);
+        socket.emit("agent_heartbeat_result", { ok: true });
+      });
+    
+      // initialize presence
+      presence[userId] = {
+        userId,
         role: socket.role,
         device,
-        actionType: type,
-        category: actionData.category || "GENERAL",
-        context: {
-          payloadKeys: payload ? Object.keys(payload) : []
-        },
-        ts: Date.now()
-      });
-
-  
-      eventBus.publish(action);
-    });
-  
-    attachHeartbeatHandlers(socket);
-  
-    //JOB QUEUE
-// JOB QUEUE
-socket.on("generate_world", (payload) => {
-  console.log("generate_world event received:", payload);
-
-  const { config, submittedAt } = payload;
-  let worldSpec;
-
-  try {
-    worldSpec = validateWorldSpec(config);
-    console.log("[WORLD SPEC VALIDATED]");
-  } catch (err) {
-    console.error("[WORLD SPEC VALIDATION FAILED]");
-    console.error(err.message);
-    return;
-  }
-  
-  // Now it is SAFE to build engine jobs
-  const engineJobs = buildEngineJobs(worldSpec);
-  // Unique job batch id
-  const jobBatchId =
-    Date.now().toString(36) +
-    Math.random().toString(36).substring(2, 5);
-
-
-  engineJobs.forEach((engineJob) => {
-    const job = {
-      id: `${jobBatchId}:${engineJob.jobType}`,
-      userId: socket.userId,
-      jobType: engineJob.jobType,
-      payload: engineJob.payload,
-      submittedAt
-    };
-
-    addJob(job, (jobObj, status) => {
-      io.to(`user:${jobObj.userId}`).emit("job_status", {
-        id: jobObj.id,
-        jobType: jobObj.jobType,
-        status,
-        submittedAt: jobObj.submittedAt,
-        userId: jobObj.userId
-      });
-
+        socketId: socket.id,
+        state: "active",
+        connectedAt: Date.now(),
+        lastActiveAt: Date.now()
+      };
       
-
-
-      if (status === "finished") {
-        io.to(`user:${jobObj.userId}`).emit("engine_job_finished", {
-          jobType: jobObj.jobType,
-          jobId: jobObj.id,
-          finishedAt: Date.now()
+    
+      emitPresenceScoped();
+    
+    
+      // ensure user state exists
+      ensureUserState(userId);
+      userStates[userId].lastActionAt = Date.now();
+      scheduleIdleCheck(userId);
+    
+      //  PRESENCE HANDLER 
+      socket.on("presence", (state) => {
+        if (!socket.userId) return;
+      
+        //  SAFETY CHECK 
+        if (!presence[userId]) {
+          console.warn(`[PRESENCE] Missing presence entry for ${userId}`);
+          return;
+        }
+      
+        presence[userId].state = state;
+        presence[userId].lastActiveAt = Date.now();
+      
+        emitPresenceScoped();
+      
+        if (state === "idle") {
+          const us = ensureUserState(userId);
+          if (us.isIdle === true) return;
+      
+          us.isIdle = true;
+      
+          const agentResult = orchestrator.evaluate({
+            type: "idle",
+            userId
+          });
+      
+          if (agentResult) io.to(`user:${userId}`).emit("agent_update", agentResult);
+          return;
+        }
+      
+        const us = ensureUserState(userId);
+        us.isIdle = false;
+        scheduleIdleCheck(userId);
+      });
+      
+      // ACTIONS HANDLER
+      socket.on("action", (actionData) => {
+        if (!socket.userId) return;
+    
+        const { type, payload, ts, nonce, sig } = actionData;
+    
+        if (Math.abs(Date.now() - ts) > 15000) {
+          return socket.emit("action_error", { error: "timestamp_expired" });
+        }
+    
+        if (!verifyActionSignature({ type, payload, ts, nonce, sig })) {
+          console.log(`[SECURITY] Signature invalid — user=${socket.userId}`);
+          return socket.emit("action_error", { error: "invalid_signature" });
+        }
+    
+        if (!checkAndConsumeNonce(socket.userId, nonce)) {
+          console.log(`[SECURITY] Nonce replay — user=${socket.userId}`);
+          return socket.emit("action_error", { error: "replay_detected" });
+        }
+    
+        // trusted action
+        const action = {
+          userId: socket.userId,
+          sessionId: socket.sessionId,
+          type,
+          payload,
+          clientTs: ts
+        };
+        const us = ensureUserState(action.userId);
+        us.actions.push(action);
+    
+        us.isIdle = false;
+        us.lastActionAt = Date.now();
+        scheduleIdleCheck(action.userId);
+    
+        if (type === "click") {
+          const now = Date.now();
+          us.actions = us.actions.filter(
+            (a) => !(a.type === "click" && now - a.timestamp > 1000)
+          );
+          us.spamCount = us.actions.filter((a) => a.type === "click").length;
+        } else {
+          us.spamCount = 0;
+        }
+    
+        if (presence[userId]) {
+          presence[userId].lastActiveAt = Date.now();
+          emitPresenceScoped();
+        }
+        
+        // Record behaviour
+        recordBehaviour({
+          sessionId: socket.sessionId,
+          userId: socket.userId,
+          role: socket.role,
+          device,
+          actionType: type,
+          category: actionData.category || "GENERAL",
+          context: {
+            payloadKeys: payload ? Object.keys(payload) : []
+          },
+          ts: Date.now()
         });
 
-        // OPTIONAL: keep agent pipeline intact
-        orchestrator.evaluate({
-          type: "build_finished",
+    
+        eventBus.publish(action);
+      });
+    
+      attachHeartbeatHandlers(socket);
+    
+      //JOB QUEUE
+  // JOB QUEUE
+  socket.on("generate_world", (payload) => {
+    console.log("generate_world event received:", payload);
+
+    const { config, submittedAt } = payload;
+    let worldSpec;
+
+    try {
+      worldSpec = validateWorldSpec(config);
+      console.log("[WORLD SPEC VALIDATED]");
+    } catch (err) {
+      console.error("[WORLD SPEC VALIDATION FAILED]");
+      console.error(err.message);
+      return;
+    }
+    
+    // Now it is SAFE to build engine jobs
+    const engineJobs = buildEngineJobs(worldSpec);
+    // Unique job batch id
+    const jobBatchId =
+      Date.now().toString(36) +
+      Math.random().toString(36).substring(2, 5);
+
+
+    engineJobs.forEach((engineJob) => {
+      const job = {
+        jobId: `${jobBatchId}:${engineJob.jobType}`,
+        userId: socket.userId,
+        jobType: engineJob.jobType,
+        payload: engineJob.payload,
+        submittedAt
+      };
+
+      addJob(job, (jobObj, status, error) => {
+        io.to(`user:${jobObj.userId}`).emit("job_status", {
+          jobId: jobObj.jobId,
           jobType: jobObj.jobType,
+          status,
+          error,
+          submittedAt: jobObj.submittedAt,
           userId: jobObj.userId
         });
-       
+
+        
+
+
+        if (status === "finished") {
+          io.to(`user:${jobObj.userId}`).emit("engine_job_finished", {
+            jobType: jobObj.jobType,
+            jobId: jobObj.jobId,
+            finishedAt: Date.now()
+          });
+
+          orchestrator.evaluate({
+            type: "build_finished",
+            jobType: jobObj.jobType,
+            userId: jobObj.userId
+          });
+        }
+
+        if (status === "failed") {
+          io.to(`user:${jobObj.userId}`).emit("engine_job_failed", {
+            jobType: jobObj.jobType,
+            jobId: jobObj.jobId,
+            error,
+            failedAt: Date.now()
+          });
+        }
+      });
+    });
+  });
+
+    socket.on("disconnect", () => {
+      console.log(`socket disconnected: ${socket.id}`);
+      if (presence[userId]) {
+        presence[userId].state = "disconnected";
+        emitPresenceScoped();
       }
     });
   });
-});
+  return io;
+  }
 
-  socket.on("disconnect", () => {
-    console.log(`socket disconnected: ${socket.id}`);
-    if (presence[userId]) {
-      presence[userId].state = "disconnected";
-      emitPresenceScoped();
-    }
-  });
-});
-
-}
-
-module.exports = { initSocket };
+  module.exports = { initSocket };

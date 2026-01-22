@@ -1,0 +1,54 @@
+{"event":"JOB_STARTED","jobId":"mkp174wgaji:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769060923794}
+{"event":"SCENE_LOADED","jobId":"mkp174wgaji:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_test","ambientLight":[1,1,1],"skybox":"default"},"ts":1769060927817}
+{"event":"JOB_FINISHED","jobId":"mkp174wgaji:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769060927821}
+{"event":"JOB_STARTED","jobId":"mkp174wgaji:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769060927829}
+{"event":"ASSETS_LOADED","jobId":"mkp174wgaji:LOAD_ASSETS","engineId":"engine_local_01","payload":{"assets":["player.png","player_mesh"]},"ts":1769060931844}
+{"event":"JOB_FINISHED","jobId":"mkp174wgaji:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769060931846}
+{"event":"JOB_STARTED","jobId":"mkp174wgaji:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769060931857}
+{"event":"ENTITY_SPAWNED","jobId":"mkp174wgaji:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"basic","texture":"player.png","color":[1,1,1]},"components":{"mesh":"player_mesh","collider":"box","script":"playerController"}},"ts":1769060935881}
+{"event":"JOB_FINISHED","jobId":"mkp174wgaji:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769060935887}
+{"event":"JOB_STARTED","jobId":"mkp1al5oz5r:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061084833}
+{"event":"SCENE_LOADED","jobId":"mkp1al5oz5r:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_test","ambientLight":[1,1,1],"skybox":"default"},"ts":1769061088856}
+{"event":"JOB_FINISHED","jobId":"mkp1al5oz5r:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061088858}
+{"event":"JOB_STARTED","jobId":"mkp1al5oz5r:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769061088867}
+{"event":"JOB_STARTED","jobId":"mkp1i5d8toy:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061437619}
+{"event":"SCENE_LOADED","jobId":"mkp1i5d8toy:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_1","ambientLight":[1,1,1],"skybox":"default"},"ts":1769061441658}
+{"event":"JOB_FINISHED","jobId":"mkp1i5d8toy:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061441660}
+{"event":"JOB_STARTED","jobId":"mkp1i5d8toy:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769061441665}
+{"event":"JOB_FAILED","jobId":"mkp1i5d8toy:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS","error":"BAD_ASSET: corrupted_texture.png"},"ts":1769061445677}
+{"event":"JOB_STARTED","jobId":"mkp1i5d8toy:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769061445700}
+{"event":"ENTITY_SPAWNED","jobId":"mkp1i5d8toy:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"basic","texture":"corrupted_texture.png","color":[1,1,1]},"components":{"mesh":"missing_mesh","collider":"box"}},"ts":1769061449861}
+{"event":"JOB_FINISHED","jobId":"mkp1i5d8toy:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769061449893}
+{"event":"JOB_STARTED","jobId":"mkp1nnq2cww:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061694686}
+{"event":"SCENE_LOADED","jobId":"mkp1nnq2cww:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_1","ambientLight":[1,1,1],"skybox":"default"},"ts":1769061698812}
+{"event":"JOB_FINISHED","jobId":"mkp1nnq2cww:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061698830}
+{"event":"JOB_STARTED","jobId":"mkp1nnq2cww:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769061698846}
+{"event":"JOB_FAILED","jobId":"mkp1nnq2cww:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS","error":"BAD_ASSET: corrupted_texture.png"},"ts":1769061702858}
+{"event":"JOB_STARTED","jobId":"mkp1nnq2cww:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769061702886}
+{"event":"ENTITY_SPAWNED","jobId":"mkp1nnq2cww:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"basic","texture":"corrupted_texture.png","color":[1,1,1]},"components":{"mesh":"missing_mesh","collider":"box"}},"ts":1769061706979}
+{"event":"JOB_FINISHED","jobId":"mkp1nnq2cww:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769061707020}
+{"event":"JOB_STARTED","jobId":"mkp1u1hnp5p:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061992465}
+{"event":"SCENE_LOADED","jobId":"mkp1u1hnp5p:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_test","ambientLight":[1,1,1],"skybox":"default"},"ts":1769061996513}
+{"event":"JOB_FINISHED","jobId":"mkp1u1hnp5p:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769061996533}
+{"event":"JOB_STARTED","jobId":"mkp1u1hnp5p:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769061996554}
+{"event":"ASSETS_LOADED","jobId":"mkp1u1hnp5p:LOAD_ASSETS","engineId":"engine_local_01","payload":{"assets":["player.png","player_mesh"]},"ts":1769062000636}
+{"event":"JOB_FINISHED","jobId":"mkp1u1hnp5p:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769062000651}
+{"event":"JOB_STARTED","jobId":"mkp1u1hnp5p:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769062000666}
+{"event":"ENTITY_SPAWNED","jobId":"mkp1u1hnp5p:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"basic","texture":"player.png","color":[1,1,1]},"components":{"mesh":"player_mesh","collider":"box"}},"ts":1769062004714}
+{"event":"JOB_FINISHED","jobId":"mkp1u1hnp5p:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769062004716}
+{"event":"JOB_STARTED","jobId":"mkp1u98rbo5:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769062004747}
+{"event":"SCENE_LOADED","jobId":"mkp1u98rbo5:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_test","ambientLight":[1,1,1],"skybox":"default"},"ts":1769062008852}
+{"event":"JOB_FINISHED","jobId":"mkp1u98rbo5:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769062008866}
+{"event":"JOB_STARTED","jobId":"mkp1u98rbo5:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769062008884}
+{"event":"JOB_FAILED","jobId":"mkp1u98rbo5:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS","error":"BAD_ASSET: corrupted_texture.png"},"ts":1769062012898}
+{"event":"JOB_STARTED","jobId":"mkp1u98rbo5:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769062012918}
+{"event":"ENTITY_SPAWNED","jobId":"mkp1u98rbo5:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"basic","texture":"corrupted_texture.png","color":[1,1,1]},"components":{"mesh":"missing_mesh","collider":"box"}},"ts":1769062017044}
+{"event":"JOB_FINISHED","jobId":"mkp1u98rbo5:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769062017055}
+{"event":"JOB_STARTED","jobId":"mkp2d3xnk7x:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769062882092}
+{"event":"SCENE_LOADED","jobId":"mkp2d3xnk7x:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"scene_1","ambientLight":[1,1,1],"skybox":"default"},"ts":1769062886157}
+{"event":"JOB_FINISHED","jobId":"mkp2d3xnk7x:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769062886169}
+{"event":"JOB_STARTED","jobId":"mkp2d3xnk7x:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769062886191}
+{"event":"JOB_FAILED","jobId":"mkp2d3xnk7x:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS","error":"BAD_ASSET: corrupted_texture.png"},"ts":1769062890241}
+{"event":"JOB_STARTED","jobId":"mkp2d3xnk7x:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769062890260}
+{"event":"ENTITY_SPAWNED","jobId":"mkp2d3xnk7x:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"basic","texture":"corrupted_texture.png","color":[1,1,1]},"components":{"mesh":"missing_mesh","collider":"box"}},"ts":1769062894456}
+{"event":"JOB_FINISHED","jobId":"mkp2d3xnk7x:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769062894492}

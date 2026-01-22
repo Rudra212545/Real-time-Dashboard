@@ -153,7 +153,7 @@ function App() {
             setJobHistory={setJobHistory}
           />
 
-          <ActionsPanel />
+          <ActionsPanel compactMode={false} soundEnabled={true} />
 
           <AgentPanel agents={agents} recentEvents={agentEvents} />
 

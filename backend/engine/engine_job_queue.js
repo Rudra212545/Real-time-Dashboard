@@ -1,16 +1,17 @@
+// Engine Job Builder 
 
-//  Engine Job Builder
+const { randomUUID } = require("crypto");
 
 function buildEngineJobs(worldSpec) {
-
   if (!worldSpec || !worldSpec.scene || !Array.isArray(worldSpec.entities)) {
     throw new Error("Invalid worldSpec passed to buildEngineJobs");
   }
 
   const jobs = [];
-    // 1. BUILD_SCENE
 
+  // 1. BUILD_SCENE
   jobs.push({
+    jobId: randomUUID(),
     jobType: "BUILD_SCENE",
     payload: {
       sceneId: worldSpec.scene.id,
@@ -19,9 +20,7 @@ function buildEngineJobs(worldSpec) {
     }
   });
 
-
-    // 2. LOAD_ASSETS
-
+  // 2. LOAD_ASSETS 
   const assetSet = new Set();
 
   worldSpec.entities.forEach(entity => {
@@ -34,18 +33,18 @@ function buildEngineJobs(worldSpec) {
   });
 
   jobs.push({
+    jobId: randomUUID(),
     jobType: "LOAD_ASSETS",
     payload: {
-      assets: Array.from(assetSet).sort() // deterministic order
+      assets: Array.from(assetSet).sort()
     }
   });
 
-
-    // 3. SPAWN_ENTITIES
-
+  // 3. SPAWN_ENTITY 
   worldSpec.entities.forEach(entity => {
     jobs.push({
-      jobType: "SPAWN_ENTITIES",
+      jobId: randomUUID(),
+      jobType: "SPAWN_ENTITY",
       payload: {
         id: entity.id,
         type: entity.type,
@@ -58,7 +57,7 @@ function buildEngineJobs(worldSpec) {
 
   console.log(
     "[ENGINE JOBS GENERATED]",
-    jobs.map(j => j.jobType)
+    jobs.map(j => `${j.jobType}:${j.jobId}`)
   );
 
   return jobs;

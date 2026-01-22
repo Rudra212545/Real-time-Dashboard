@@ -4,6 +4,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const ActionEvent = require("./models/ActionEvent");
 const { verifyToken } = require("./auth/jwt");
+const { setEngineConnected } = require("./jobQueue");
 
 const app = express();
 
@@ -50,6 +51,17 @@ app.get("/actions", requireAdminHttp, async (req, res) => {
     .sort({ serverTs: -1 })
     .limit(200);
   res.json(actions);
+});
+
+// ENGINE CONTROL (for testing failures)
+app.post("/engine/disconnect", requireAdminHttp, (req, res) => {
+  setEngineConnected(false);
+  res.json({ ok: true, message: "Engine disconnected" });
+});
+
+app.post("/engine/reconnect", requireAdminHttp, (req, res) => {
+  setEngineConnected(true);
+  res.json({ ok: true, message: "Engine reconnected" });
 });
 
 module.exports = app;

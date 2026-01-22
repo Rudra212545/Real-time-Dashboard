@@ -71,7 +71,7 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
       {jobHistory.length > 0 && (
         <ul
           className={[
-            "relative mb-4 max-h-64 overflow-y-auto rounded-2xl p-3 space-y-1.5",
+            "relative mb-4 max-h-96 overflow-y-auto rounded-2xl p-3 space-y-1.5",
             "bg-white/70 dark:bg-slate-950/80",
             "border border-slate-200/70 dark:border-slate-800/70",
             "backdrop-blur-xl",
@@ -81,6 +81,8 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
             const statusColor =
               job.status === "finished"
                 ? "text-emerald-600 dark:text-emerald-300"
+                : job.status === "failed"
+                ? "text-red-600 dark:text-red-300"
                 : job.status === "started"
                 ? "text-amber-600 dark:text-amber-300"
                 : "text-sky-600 dark:text-sky-300";
@@ -88,6 +90,8 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
             const dotColor =
               job.status === "finished"
                 ? "bg-emerald-400"
+                : job.status === "failed"
+                ? "bg-red-400"
                 : job.status === "started"
                 ? "bg-amber-400"
                 : "bg-sky-400";
@@ -96,102 +100,75 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
               <li
                 key={job.id}
                 className={[
-                  "relative flex items-center gap-3 rounded-2xl px-3 py-2 text-sm group",
-                  "bg-gradient-to-br from-white/80 to-slate-100/80",
-                  "dark:from-slate-900/80 dark:to-slate-800/80",
-                  "border border-slate-200/70 dark:border-slate-700/70",
+                  "relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm group",
+                  job.status === "failed"
+                    ? "bg-gradient-to-br from-red-50/90 to-red-100/90 dark:from-red-950/40 dark:to-red-900/40"
+                    : "bg-gradient-to-br from-white/80 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-800/80",
+                  job.status === "failed"
+                    ? "border border-red-300/70 dark:border-red-700/70"
+                    : "border border-slate-200/70 dark:border-slate-700/70",
                   "text-slate-900 dark:text-slate-100",
                   "transition-all duration-300",
-                  "hover:-translate-y-0.5 hover:border-indigo-500",
-                  "hover:shadow-lg hover:shadow-indigo-500/25",
+                  job.status === "failed"
+                    ? "hover:shadow-lg hover:shadow-red-500/25"
+                    : "hover:-translate-y-0.5 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/25",
                 ].join(" ")}
               >
                 {/* Accent */}
-                <div className="absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-sky-400 via-indigo-400 to-purple-400 rounded-l-2xl opacity-80" />
+                <div className={[
+                  "absolute inset-y-0 left-0 w-[3px] rounded-l-2xl opacity-80",
+                  job.status === "failed"
+                    ? "bg-gradient-to-b from-red-500 via-red-600 to-red-700"
+                    : "bg-gradient-to-b from-sky-400 via-indigo-400 to-purple-400"
+                ].join(" ")} />
 
                 {/* Hover glow */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className={[
+                  "pointer-events-none absolute inset-x-0 top-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                  job.status === "failed"
+                    ? "bg-gradient-to-r from-red-500 via-red-600 to-red-700"
+                    : "bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400"
+                ].join(" ")} />
 
-                <div className="ml-2 flex-1 min-w-0 flex items-center justify-between gap-3">
-                  <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="ml-2 flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex h-1.5 w-1.5 rounded-full ${dotColor}`} />
-                      <span className={`font-semibold text-xs ${statusColor}`}>
-                        {job.status.toUpperCase()}
+                      <span className={`inline-flex h-2 w-2 rounded-full ${dotColor} ${job.status === 'failed' ? 'animate-pulse' : ''}`} />
+                      <span className={`font-bold text-xs ${statusColor} uppercase tracking-wide`}>
+                        {job.status}
                       </span>
                     </div>
-
-                    <div className="text-xs truncate">
-                      <span className="font-mono text-sky-600 dark:text-sky-200">
-                        {job.config?.color || "default"}
-                      </span>{" "}
-                      <span className="text-slate-400">| Size:</span>{" "}
-                      <span className="font-mono text-emerald-600 dark:text-emerald-200">
-                        {job.config?.size || 1}
-                      </span>
-                    </div>
+                    <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      {new Date(job.submittedAt).toLocaleTimeString()}
+                    </span>
                   </div>
 
-                  <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    {new Date(job.submittedAt).toLocaleTimeString()}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <div className="text-xs">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Type:</span>{" "}
+                      <span className="font-mono text-sky-600 dark:text-sky-300">
+                        {job.jobType}
+                      </span>
+                    </div>
+
+                    {job.error && (
+                      <div className="flex items-start gap-1.5 mt-0.5 p-2 rounded-lg bg-red-100/80 dark:bg-red-950/60 border border-red-300/50 dark:border-red-800/50">
+                        <span className="text-red-600 dark:text-red-400 text-xs mt-0.5">⚠️</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] uppercase tracking-wide text-red-600 dark:text-red-400 font-semibold mb-0.5">Error</div>
+                          <div className="font-mono text-xs text-red-700 dark:text-red-300 break-all leading-relaxed">
+                            {job.error}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </li>
             );
           })}
         </ul>
       )}
-
-      {/* Agent feedback */}
-      <div className="relative mt-2">
-        <h3 className="mb-2 text-base font-semibold bg-gradient-to-r from-sky-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-          Agent Feedback
-        </h3>
-
-        {!agentMessage && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            No agent message yet.
-          </p>
-        )}
-
-        {agentMessage && (
-          <div
-            className="
-              rounded-2xl border px-4 py-3 text-sm
-              bg-gradient-to-br from-white/80 to-slate-100/80
-              dark:from-slate-900/80 dark:to-slate-800/80
-              border-slate-200 dark:border-slate-700/70
-              text-slate-700 dark:text-blue-200
-              shadow-md shadow-sky-500/20
-            "
-          >
-            <div className="space-y-1">
-              <div>
-                <span className="text-[11px] uppercase tracking-wide text-sky-500">
-                  Type:
-                </span>{" "}
-                <span className="font-medium">{agentMessage.type}</span>
-              </div>
-              <div>
-                <span className="text-[11px] uppercase tracking-wide text-sky-500">
-                  Message:
-                </span>{" "}
-                <span className="text-slate-900 dark:text-slate-100">
-                  {agentMessage.message}
-                </span>
-              </div>
-              <div>
-                <span className="text-[11px] uppercase tracking-wide text-sky-500">
-                  Score:
-                </span>{" "}
-                <span className="font-mono text-emerald-600 dark:text-emerald-300">
-                  {agentMessage.score}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

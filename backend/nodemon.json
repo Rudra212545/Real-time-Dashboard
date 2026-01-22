@@ -1,0 +1,8 @@
+{
+    "ignore": [
+      "engine/engine_event_log.json",
+      "telemetry_samples.json",
+      "test_failures.js"
+    ]
+  }
+  

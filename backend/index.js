@@ -6,6 +6,9 @@ const mongoose = require("mongoose");
 const authRoutes = require("./routes/authRoutes");
 const { initSocket } = require("./socket");
 require("dotenv").config();
+const { setupEngineSocket } = require("./engine/engine_socket");
+const jobQueue = require("./jobQueue");
+
 
 const app = express();
 const server = createServer(app);
@@ -31,7 +34,8 @@ mongoose.connect(process.env.MONGO_URI)
   });
 
 // sockets
-initSocket(server);
+const io = initSocket(server);
+setupEngineSocket(io, jobQueue);
 const PORT = process.env.PORT;
 // server
 server.listen(PORT, () => {

@@ -35,16 +35,13 @@ export default function ActionsPanel({
   return (
     <div
       className={[
-        compactMode
-          ? "relative w-full max-w-full min-w-0 rounded-3xl"
-          : "relative max-w-md mx-auto rounded-3xl",
+        "relative w-full rounded-3xl",
         "border backdrop-blur-2xl overflow-hidden",
         "shadow-[0_18px_45px_rgba(15,23,42,0.15)] dark:shadow-[0_18px_45px_rgba(15,23,42,0.6)]",
         "transition-all duration-300",
-        // ✅ THEME
         "bg-white text-slate-900 border-slate-200",
         "dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800",
-        compactMode ? "p-4" : "p-6",
+        compactMode ? "p-4 max-h-[600px] overflow-y-auto" : "p-6",
       ].join(" ")}
     >
       {/* Header */}
@@ -132,13 +129,13 @@ export default function ActionsPanel({
       </div>
 
       {/* Custom Action */}
-      <div className={`mt-4 flex gap-3 ${compactMode ? "flex-col" : ""}`}>
+      <div className="mt-4 flex flex-col gap-2">
         <input
           value={customAction}
           onChange={(e) => setCustomAction(e.target.value)}
           placeholder="Custom action..."
           className={[
-            "flex-1 rounded-2xl px-4 border",
+            "w-full rounded-2xl px-4 border",
             "bg-white text-slate-900 border-slate-300",
             "dark:bg-white/10 dark:text-white dark:border-white/20",
             compactMode ? "py-2 text-sm" : "py-3",
@@ -152,9 +149,9 @@ export default function ActionsPanel({
             setCustomAction("");
           }}
           className={[
-            "rounded-2xl bg-indigo-600 text-white font-semibold",
+            "w-full rounded-2xl bg-indigo-600 text-white font-semibold",
             "disabled:opacity-50",
-            compactMode ? "px-4 py-2 text-sm" : "px-7 py-3",
+            compactMode ? "py-2 text-sm" : "py-3",
           ].join(" ")}
         >
           ⚡ Send
