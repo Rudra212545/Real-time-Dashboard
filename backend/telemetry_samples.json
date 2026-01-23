@@ -180,3 +180,15 @@
 {"event":"JOB_STARTED","jobId":"mkqdaxmjd7o:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769141734771}
 {"event":"ENTITY_SPAWNED","jobId":"mkqdaxmjd7o:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"scorpion_1","type":"npc","transform":{"position":[8,0,2],"rotation":[0,90,0],"scale":[1.2,1.2,1.2]},"material":{"shader":"standard","texture":"scorpion_shell","color":[1,1,1]},"components":{"mesh":"scorpion","collider":"box","script":"hostile_ai"}},"ts":1769141738806}
 {"event":"JOB_FINISHED","jobId":"mkqdaxmjd7o:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769141738810}
+{"event":"JOB_STARTED","jobId":"mkqeeonlzz3:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769143577182}
+{"event":"SCENE_LOADED","jobId":"mkqeeonlzz3:BUILD_SCENE","engineId":"engine_local_01","payload":{"sceneId":"ocean_scene","ambientLight":[0.3,0.5,0.8],"skybox":"ocean_sky"},"ts":1769143581247}
+{"event":"JOB_FINISHED","jobId":"mkqeeonlzz3:BUILD_SCENE","engineId":"engine_local_01","payload":{"jobType":"BUILD_SCENE"},"ts":1769143581251}
+{"event":"JOB_STARTED","jobId":"mkqeeonlzz3:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769143581257}
+{"event":"ASSETS_LOADED","jobId":"mkqeeonlzz3:LOAD_ASSETS","engineId":"engine_local_01","payload":{"assets":["player","player_diver","shark","shark_skin"]},"ts":1769143585320}
+{"event":"JOB_FINISHED","jobId":"mkqeeonlzz3:LOAD_ASSETS","engineId":"engine_local_01","payload":{"jobType":"LOAD_ASSETS"},"ts":1769143585323}
+{"event":"JOB_STARTED","jobId":"mkqeeonlzz3:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769143585325}
+{"event":"ENTITY_SPAWNED","jobId":"mkqeeonlzz3:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"player_1","type":"player","transform":{"position":[0,-5,0],"rotation":[0,0,0],"scale":[1,1,1]},"material":{"shader":"standard","texture":"player_diver","color":[1,1,1]},"components":{"mesh":"player","collider":"box","script":"player_controller"}},"ts":1769143589382}
+{"event":"JOB_FINISHED","jobId":"mkqeeonlzz3:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769143589383}
+{"event":"JOB_STARTED","jobId":"mkqeeonlzz3:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769143589389}
+{"event":"ENTITY_SPAWNED","jobId":"mkqeeonlzz3:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"id":"shark_1","type":"npc","transform":{"position":[10,-8,5],"rotation":[0,180,0],"scale":[2,2,2]},"material":{"shader":"standard","texture":"shark_skin","color":[1,1,1]},"components":{"mesh":"shark","collider":"box","script":"hostile_ai"}},"ts":1769143593617}
+{"event":"JOB_FINISHED","jobId":"mkqeeonlzz3:SPAWN_ENTITY","engineId":"engine_local_01","payload":{"jobType":"SPAWN_ENTITY"},"ts":1769143593632}

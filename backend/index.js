@@ -25,13 +25,17 @@ app.use(express.json());
 // routes
 app.use("/auth", authRoutes);
 
-// db
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("Mongo connected"))
-  .catch(err => {
-    console.error(err);
-    process.exit(1);
-  });
+// db (optional - system works without MongoDB)
+if (process.env.MONGO_URI && process.env.MONGO_URI !== 'mongodb://localhost:27017/microbridge') {
+  mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("Mongo connected"))
+    .catch(err => {
+      console.warn("MongoDB connection failed (non-critical):", err.message);
+      console.log("System will continue without database persistence");
+    });
+} else {
+  console.log("MongoDB disabled - using in-memory state only");
+}
 
 // sockets
 const io = initSocket(server);
