@@ -13,6 +13,7 @@ import JsonConfigPanel from "./components/JsonConfigPanel";
 import JobQueuePanel from "./components/JobQueuePanel";
 import SecurityPanel from "./components/SecurityPanel";
 import UserPreferencePanel from "./components/UserPreferencePanel";
+import DemoModePanel from "./components/DemoModePanel";
 
 // state
 import { agentsReducer, initialAgentsState } from "./state/agentsReducer";
@@ -141,6 +142,8 @@ function App() {
             xl:grid-cols-3
           "
         >
+          <DemoModePanel />
+
           <CubePreview config={cubeConfig} />
 
           <JsonConfigPanel

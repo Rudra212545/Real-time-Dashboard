@@ -12,7 +12,7 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
         "bg-gradient-to-br from-slate-50/90 via-white/90 to-sky-50/90",
         "dark:from-slate-950/90 dark:via-slate-900/80 dark:to-slate-950/95",
         "border-slate-200/80 dark:border-slate-800/80",
-        "p-6",
+        "p-6 flex flex-col h-full",
       ].join(" ")}
     >
       {/* Ambient glow */}
@@ -43,8 +43,8 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
 
       {/* Empty state */}
       {jobHistory.length === 0 && (
-        <div className="relative mb-4">
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="relative flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center text-center">
             <div
               className="
                 w-12 h-12 rounded-2xl border border-dashed
@@ -71,7 +71,7 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
       {jobHistory.length > 0 && (
         <ul
           className={[
-            "relative mb-4 max-h-96 overflow-y-auto rounded-2xl p-3 space-y-1.5",
+            "relative flex-1 overflow-y-auto rounded-2xl p-3 space-y-1.5",
             "bg-white/70 dark:bg-slate-950/80",
             "border border-slate-200/70 dark:border-slate-800/70",
             "backdrop-blur-xl",

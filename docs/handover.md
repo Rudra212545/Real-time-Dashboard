@@ -1,6 +1,39 @@
 # HANDOVER — Real-Time Micro-Bridge + Multi-Agent Orchestrator Dashboard
 
+---
 
+## 🚀 Quick Start (Fresh Machine)
+
+### Prerequisites
+- **Node.js v18+** ([Download](https://nodejs.org))
+- **npm v9+** (comes with Node.js)
+
+### One-Command Start
+
+**Windows:**
+```bash
+start.bat
+```
+
+**Mac/Linux:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+The script will:
+1. Check Node.js installation
+2. Install backend dependencies (if needed)
+3. Install frontend dependencies (if needed)
+4. Create `.env` files from examples
+5. Start both servers
+6. Open dashboard in browser
+
+**URLs:**
+- Backend: `http://localhost:3000`
+- Frontend: `http://localhost:5173`
+
+---
 
 ##  What Works
 
@@ -95,9 +128,60 @@
 
 ##  Deployment Notes
 
+### Fresh Machine Setup
+1. Clone repository
+2. Run `start.bat` (Windows) or `./start.sh` (Mac/Linux)
+3. System auto-installs dependencies and starts servers
+4. Dashboard opens at `http://localhost:5173`
+
+### Manual Setup (Alternative)
+```bash
+# Backend
+cd backend
+npm install
+npm run dev
+
+# Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+### Production Deployment
 - Use environment variables for secrets (JWT_SECRET, agent HMAC keys).
 - Consider persisting state (Redis/Mongo) for production scaling.
 - Use a process manager (PM2/docker) for reliability.
+- Set `NODE_ENV=production`
+
+### Engine Integration
+- Backend exposes socket events for engine connection
+- Job queue ready to receive external engine jobs
+- Telemetry events logged to `engine/engine_event_log.json`
+
+---
+
+## 📦 Handover Checklist
+
+- [x] One-command startup scripts (`start.bat`, `start.sh`)
+- [x] Auto-dependency installation
+- [x] Auto `.env` file creation
+- [x] Complete documentation (`README.md`, `RUN.md`, `handover.md`)
+- [x] Architecture diagrams and security audit
+- [x] Multi-user simulator for testing
+- [x] Demo Mode for quick demonstration
+- [x] Job queue with real-time updates
+- [x] Security primitives (JWT, HMAC, nonce, heartbeat)
+- [x] Multi-agent orchestration with priority handling
+
+---
+
+## 📞 Support
+
+For questions or issues:
+1. Check `README.md` for feature overview
+2. Check `RUN.md` for detailed setup
+3. Check `docs/architecture.md` for system design
+4. Check `docs/security_readiness.md` for security details
 
 ---
 

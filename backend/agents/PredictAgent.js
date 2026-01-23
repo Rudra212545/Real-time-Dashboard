@@ -7,12 +7,12 @@ class PredictAgent {
     const now = Date.now();
 
     // Safety checks
-    if (!state || !Array.isArray(state.actionHistory)) {
+    if (!state || !Array.isArray(state.actions)) {
       return null;
     }
 
     // Look at last 6 actions (sliding window)
-    const recentActions = state.actionHistory.slice(-6);
+    const recentActions = state.actions.slice(-6);
 
     // --- Pattern 1: Repetitive interaction pattern ---
     const sameTypeCount = recentActions.filter(

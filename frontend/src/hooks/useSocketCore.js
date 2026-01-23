@@ -49,6 +49,10 @@ export default function useSocketCore({
         setCubeConfig(job.config);
       }
     });
+
+    socket.on("cube_update", (config) => {
+      setCubeConfig(config);
+    });
  
     return () => socket.removeAllListeners();
   }, []);

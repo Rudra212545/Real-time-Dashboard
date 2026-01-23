@@ -272,8 +272,40 @@
     console.log("generate_world event received:", payload);
 
     const { config, submittedAt } = payload;
-    let worldSpec;
+    
+    // Check if it's a simple cube config
+    const isCubeConfig = config.color && config.size && !config.schema_version;
+    
+    if (isCubeConfig) {
+      // Handle simple cube preview job
+      const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+      const job = {
+        jobId: `${jobBatchId}:CUBE_PREVIEW`,
+        userId: socket.userId,
+        jobType: "CUBE_PREVIEW",
+        payload: config,
+        submittedAt
+      };
 
+      addJob(job, (jobObj, status, error) => {
+        io.to(`user:${jobObj.userId}`).emit("job_status", {
+          jobId: jobObj.jobId,
+          jobType: jobObj.jobType,
+          status,
+          error,
+          submittedAt: jobObj.submittedAt,
+          userId: jobObj.userId
+        });
+
+        if (status === "finished") {
+          io.to(`user:${jobObj.userId}`).emit("cube_update", config);
+        }
+      });
+      return;
+    }
+
+    // Handle full world spec
+    let worldSpec;
     try {
       worldSpec = validateWorldSpec(config);
       console.log("[WORLD SPEC VALIDATED]");
@@ -283,13 +315,8 @@
       return;
     }
     
-    // Now it is SAFE to build engine jobs
     const engineJobs = buildEngineJobs(worldSpec);
-    // Unique job batch id
-    const jobBatchId =
-      Date.now().toString(36) +
-      Math.random().toString(36).substring(2, 5);
-
+    const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
 
     engineJobs.forEach((engineJob) => {
       const job = {
@@ -309,9 +336,6 @@
           submittedAt: jobObj.submittedAt,
           userId: jobObj.userId
         });
-
-        
-
 
         if (status === "finished") {
           io.to(`user:${jobObj.userId}`).emit("engine_job_finished", {

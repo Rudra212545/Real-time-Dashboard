@@ -15,7 +15,16 @@ export default function useJobQueue(setJobHistory) {
       });
     }
 
+    function onCubeUpdate(config) {
+      // Cube update from job completion
+    }
+
     socket.on("job_status", onJobStatus);
-    return () => socket.off("job_status", onJobStatus);
+    socket.on("cube_update", onCubeUpdate);
+    
+    return () => {
+      socket.off("job_status", onJobStatus);
+      socket.off("cube_update", onCubeUpdate);
+    };
   }, [setJobHistory]);
 }
