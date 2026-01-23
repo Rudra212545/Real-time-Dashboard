@@ -10,7 +10,12 @@
 
 ### One-Command Start
 
-**Windows:**
+**Windows (PowerShell):**
+```powershell
+.\start.bat
+```
+
+**Windows (Command Prompt):**
 ```bash
 start.bat
 ```
