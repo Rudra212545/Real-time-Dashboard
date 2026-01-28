@@ -1,48 +1,235 @@
 {
-  "schema_version": "1.0",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BHIV Engine Schema v1.0 - FROZEN",
+  "description": "Engine-ingestable world specification for OpenGL runtime. No optional fields. No ambiguity.",
+  "type": "object",
+  "required": ["schema_version", "world", "scene", "entities", "quests", "jobs"],
+  "additionalProperties": false,
 
-  "world": {
-    "id": "string",
-    "name": "string",
-    "gravity": [0, -9.8, 0]
-  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. FROZEN at 1.0. Breaking changes forbidden."
+    },
 
-  "scene": {
-    "id": "string",
-    "ambientLight": [1, 1, 1],
-    "skybox": "string"
-  },
+    "world": {
+      "type": "object",
+      "required": ["id", "name", "gravity"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^world_[a-z0-9_]+$",
+          "description": "Unique world identifier. Format: world_<name>"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Human-readable world name"
+        },
+        "gravity": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Global gravity vector [x, y, z]. Standard: [0, -9.8, 0]"
+        }
+      }
+    },
 
-  "entities": [
-    {
-      "id": "string",
-      "type": "player | npc | object",
+    "scene": {
+      "type": "object",
+      "required": ["id", "ambientLight", "skybox"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^scene_[a-z0-9_]+$",
+          "description": "Unique scene identifier. Format: scene_<name>"
+        },
+        "ambientLight": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0, "maximum": 1 },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "RGB ambient light [r, g, b]. Range: 0.0-1.0"
+        },
+        "skybox": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Skybox asset identifier (symbolic, not file path)"
+        }
+      }
+    },
 
-      "transform": {
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
-        "scale": [1, 1, 1]
-      },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "description": "All runtime entities. Must contain at least one entity.",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "transform", "material", "components"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Unique entity identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["player", "npc", "object"],
+            "description": "Entity semantic type"
+          },
 
-      "material": {
-        "shader": "string",
-        "texture": "string",
-        "color": [1, 1, 1]
-      },
+          "transform": {
+            "type": "object",
+            "required": ["position", "rotation", "scale"],
+            "additionalProperties": false,
+            "properties": {
+              "position": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "World position [x, y, z]"
+              },
+              "rotation": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "Euler rotation [x, y, z] in radians"
+              },
+              "scale": {
+                "type": "array",
+                "items": { "type": "number", "exclusiveMinimum": 0 },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "Scale [x, y, z]. Must be > 0"
+              }
+            }
+          },
 
-      "components": {
-        "mesh": "string",
-        "collider": "box | sphere | none",
-        "script": "string"
+          "material": {
+            "type": "object",
+            "required": ["shader", "texture", "color"],
+            "additionalProperties": false,
+            "properties": {
+              "shader": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Shader identifier (symbolic)"
+              },
+              "texture": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Texture identifier (symbolic, use 'none' for untextured)"
+              },
+              "color": {
+                "type": "array",
+                "items": { "type": "number", "minimum": 0, "maximum": 1 },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "Base color RGB [r, g, b]. Range: 0.0-1.0"
+              }
+            }
+          },
+
+          "components": {
+            "type": "object",
+            "required": ["mesh", "collider"],
+            "additionalProperties": false,
+            "properties": {
+              "mesh": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Mesh identifier (symbolic, not file path)"
+              },
+              "collider": {
+                "type": "string",
+                "enum": ["box", "sphere", "none"],
+                "description": "Collision shape type"
+              },
+              "script": {
+                "type": "string",
+                "description": "Optional behavior script identifier. Use empty string if none.",
+                "default": ""
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "quests": {
+      "type": "array",
+      "description": "Quest metadata. Can be empty array.",
+      "items": {
+        "type": "object",
+        "required": ["id", "triggerEntity", "goal"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^quest_[a-z0-9_]+$",
+            "description": "Unique quest identifier. Format: quest_<name>"
+          },
+          "triggerEntity": {
+            "type": "string",
+            "description": "Entity ID that triggers this quest"
+          },
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Quest objective description"
+          }
+        }
+      }
+    },
+
+    "jobs": {
+      "type": "array",
+      "description": "Job queue metadata. Tracks lifecycle state.",
+      "items": {
+        "type": "object",
+        "required": ["jobId", "jobType", "status", "submittedAt"],
+        "additionalProperties": false,
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "Unique job identifier (UUID or batch:type format)"
+          },
+          "jobType": {
+            "type": "string",
+            "enum": ["BUILD_SCENE", "LOAD_ASSETS", "SPAWN_ENTITY"],
+            "description": "Job type. FROZEN set."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "dispatched", "running", "completed", "failed"],
+            "description": "Job lifecycle state. Strict state machine."
+          },
+          "submittedAt": {
+            "type": "number",
+            "description": "Unix timestamp (ms) when job was submitted"
+          },
+          "dispatchedAt": {
+            "type": "number",
+            "description": "Unix timestamp (ms) when job was dispatched to engine"
+          },
+          "completedAt": {
+            "type": "number",
+            "description": "Unix timestamp (ms) when job completed or failed"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if status is failed"
+          }
+        }
       }
     }
-  ],
-
-  "quests": [
-    {
-      "id": "string",
-      "triggerEntity": "string",
-      "goal": "string"
-    }
-  ]
+  }
 }

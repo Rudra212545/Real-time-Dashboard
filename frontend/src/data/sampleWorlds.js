@@ -7,7 +7,7 @@ export const SAMPLE_WORLDS = {
       "gravity": [0, -9.8, 0]
     },
     "scene": {
-      "id": "forest_scene",
+      "id": "scene_forest",
       "ambientLight": [0.4, 0.6, 0.4],
       "skybox": "forest_sky"
     },
@@ -67,7 +67,7 @@ export const SAMPLE_WORLDS = {
       "gravity": [0, -9.8, 0]
     },
     "scene": {
-      "id": "desert_scene",
+      "id": "scene_desert",
       "ambientLight": [1.0, 0.9, 0.7],
       "skybox": "desert_sky"
     },
@@ -127,7 +127,7 @@ export const SAMPLE_WORLDS = {
       "gravity": [0, -4.5, 0]
     },
     "scene": {
-      "id": "ocean_scene",
+      "id": "scene_ocean",
       "ambientLight": [0.3, 0.5, 0.8],
       "skybox": "ocean_sky"
     },
@@ -187,7 +187,7 @@ export const SAMPLE_WORLDS = {
       "gravity": [0, -9.8, 0]
     },
     "scene": {
-      "id": "volcano_scene",
+      "id": "scene_volcano",
       "ambientLight": [1.0, 0.3, 0.2],
       "skybox": "volcano_sky"
     },

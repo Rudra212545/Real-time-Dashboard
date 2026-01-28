@@ -12,7 +12,47 @@ export default function JsonConfigPanel({ onConfigChange, previewConfig }) {
     try {
       const parsed = JSON.parse(jsonText);
       setError(null);
-      onConfigChange(parsed);
+      
+      // Convert to engine schema for preview
+      let previewSchema;
+      if (parsed.color && parsed.size) {
+        // Legacy cube format
+        const hexToRgb = (hex) => {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+          return result ? [
+            parseInt(result[1], 16) / 255,
+            parseInt(result[2], 16) / 255,
+            parseInt(result[3], 16) / 255
+          ] : [1, 1, 1];
+        };
+        
+        previewSchema = {
+          schema_version: "1.0",
+          world: { id: "world_preview", name: "Preview", gravity: [0, -9.8, 0] },
+          scene: { id: "scene_preview", ambientLight: [1, 1, 1], skybox: "default" },
+          entities: [{
+            id: "cube_preview",
+            type: "object",
+            transform: {
+              position: [0, 0, 0],
+              rotation: [0, 0, 0],
+              scale: [parsed.size, parsed.size, parsed.size]
+            },
+            material: {
+              shader: "standard",
+              texture: "none",
+              color: hexToRgb(parsed.color)
+            },
+            components: { mesh: "cube", collider: "box", script: "" }
+          }],
+          quests: []
+        };
+      } else {
+        // Already engine schema or LLM format
+        previewSchema = parsed;
+      }
+      
+      onConfigChange(previewSchema);
     } catch (e) {
       setError("Invalid JSON: " + e.message);
     }

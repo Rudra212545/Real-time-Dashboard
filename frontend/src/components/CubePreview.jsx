@@ -65,16 +65,18 @@ export default function CubePreview({ config = {} }) {
   // React to config changes
   useEffect(() => {
     if (!cubeRef.current) return;
+    
+    // Check if config has entities (engine schema)
+    if (config.entities && config.entities.length > 0) {
+      const entity = config.entities[0];
+      if (entity.material && entity.transform) {
+        const [r, g, b] = entity.material.color;
+        const [sx, sy, sz] = entity.transform.scale;
 
-    const { color, size } = config;
-
-    if (typeof size === "number") {
-      cubeRef.current.geometry.dispose();
-      cubeRef.current.geometry = new THREE.BoxGeometry(size, size, size);
-    }
-
-    if (color) {
-      cubeRef.current.material.color.set(color);
+        cubeRef.current.geometry.dispose();
+        cubeRef.current.geometry = new THREE.BoxGeometry(sx, sy, sz);
+        cubeRef.current.material.color.setRGB(r, g, b);
+      }
     }
   }, [config]);
 

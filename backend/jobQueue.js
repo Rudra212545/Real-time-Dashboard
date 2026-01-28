@@ -1,24 +1,48 @@
-// jobQueue.js
+// jobQueue.js - Strict Lifecycle State Machine
 const { recordTelemetry } = require("./engine/engine_telemetry");
 
 const queue = [];
+const activeJobs = new Map(); // Track running jobs
 let processing = false;
-
-//NEW: engine-visible pending jobs
-const enginePendingJobs = [];
 
 const ENGINE_ID = "engine_local_01";
 let engineConnected = true;
 
+// Valid state transitions
+const VALID_TRANSITIONS = {
+  queued: ["dispatched", "failed"],
+  dispatched: ["running", "failed"],
+  running: ["completed", "failed"],
+  completed: [],
+  failed: []
+};
+
+function validateTransition(currentState, newState) {
+  const allowed = VALID_TRANSITIONS[currentState] || [];
+  if (!allowed.includes(newState)) {
+    throw new Error(`Invalid transition: ${currentState} → ${newState}`);
+  }
+}
+
 function addJob(job, onStatus) {
   console.log("[QUEUE RECEIVED]", job.jobType);
 
+  // Initialize job with lifecycle tracking
+  job.status = "queued";
+  job.queuedAt = Date.now();
+  job.retryCount = 0;
+  job.engineId = ENGINE_ID;
+
   queue.push(job);
-
-  // expose job to engine layer
-  enginePendingJobs.push(job);
-
   onStatus(job, "queued");
+
+  recordTelemetry({
+    event: "JOB_QUEUED",
+    jobId: job.jobId,
+    engineId: ENGINE_ID,
+    payload: { jobType: job.jobType, userId: job.userId }
+  });
+
   processQueue(onStatus);
 }
 
@@ -27,75 +51,143 @@ function processQueue(onStatus) {
   processing = true;
 
   const job = queue.shift();
-  onStatus(job, "started");
+  
+  // Transition: queued → dispatched
+  try {
+    validateTransition(job.status, "dispatched");
+    job.status = "dispatched";
+    job.dispatchedAt = Date.now();
+    onStatus(job, "dispatched");
 
-  recordTelemetry({
-    event: "JOB_STARTED",
-    jobId: job.jobId,
-    engineId: ENGINE_ID,
-    payload: { jobType: job.jobType }
-  });
+    recordTelemetry({
+      event: "JOB_DISPATCHED",
+      jobId: job.jobId,
+      engineId: ENGINE_ID,
+      payload: { jobType: job.jobType }
+    });
+  } catch (err) {
+    console.error(`[JOB TRANSITION ERROR] ${err.message}`);
+    failJob(job, onStatus, err.message);
+    processing = false;
+    processQueue(onStatus);
+    return;
+  }
 
+  // Simulate engine processing
   setTimeout(() => {
-    // Simulate failures
-    const failureReason = simulateFailure(job);
+    // Transition: dispatched → running
+    try {
+      validateTransition(job.status, "running");
+      job.status = "running";
+      job.startedAt = Date.now();
+      onStatus(job, "running");
 
-    if (failureReason) {
-      onStatus(job, "failed", failureReason);
-      recordTelemetry({
-        event: "JOB_FAILED",
-        jobId: job.jobId,
-        engineId: ENGINE_ID,
-        payload: { jobType: job.jobType, error: failureReason }
-      });
-    } else {
-      onStatus(job, "finished");
-
-      // Emit specific telemetry based on job type
-      if (job.jobType === "BUILD_SCENE") {
-        recordTelemetry({
-          event: "SCENE_LOADED",
-          jobId: job.jobId,
-          engineId: ENGINE_ID,
-          payload: job.payload
-        });
-      } else if (job.jobType === "SPAWN_ENTITY") {
-        recordTelemetry({
-          event: "ENTITY_SPAWNED",
-          jobId: job.jobId,
-          engineId: ENGINE_ID,
-          payload: job.payload
-        });
-      } else if (job.jobType === "LOAD_ASSETS") {
-        recordTelemetry({
-          event: "ASSETS_LOADED",
-          jobId: job.jobId,
-          engineId: ENGINE_ID,
-          payload: job.payload
-        });
-      }
+      activeJobs.set(job.jobId, job);
 
       recordTelemetry({
-        event: "JOB_FINISHED",
+        event: "JOB_RUNNING",
         jobId: job.jobId,
         engineId: ENGINE_ID,
         payload: { jobType: job.jobType }
       });
+    } catch (err) {
+      console.error(`[JOB TRANSITION ERROR] ${err.message}`);
+      failJob(job, onStatus, err.message);
+      processing = false;
+      processQueue(onStatus);
+      return;
     }
 
-    //  remove from engine-visible list
-    const idx = enginePendingJobs.findIndex(j => j.jobId === job.jobId);
+    // Simulate job execution
+    setTimeout(() => {
+      const failureReason = simulateFailure(job);
 
-    if (idx !== -1) enginePendingJobs.splice(idx, 1);
+      if (failureReason) {
+        failJob(job, onStatus, failureReason);
+      } else {
+        completeJob(job, onStatus);
+      }
 
-    processing = false;
-    processQueue(onStatus);
-  }, 4000);
+      activeJobs.delete(job.jobId);
+      processing = false;
+      processQueue(onStatus);
+    }, 3000);
+  }, 500);
 }
 
+function completeJob(job, onStatus) {
+  try {
+    validateTransition(job.status, "completed");
+    job.status = "completed";
+    job.completedAt = Date.now();
+    job.duration = job.completedAt - job.startedAt;
+
+    onStatus(job, "completed");
+
+    // Job-specific telemetry
+    if (job.jobType === "BUILD_SCENE") {
+      recordTelemetry({
+        event: "SCENE_LOADED",
+        jobId: job.jobId,
+        engineId: ENGINE_ID,
+        payload: job.payload
+      });
+    } else if (job.jobType === "SPAWN_ENTITY") {
+      recordTelemetry({
+        event: "ENTITY_SPAWNED",
+        jobId: job.jobId,
+        engineId: ENGINE_ID,
+        payload: job.payload
+      });
+    } else if (job.jobType === "LOAD_ASSETS") {
+      recordTelemetry({
+        event: "ASSETS_LOADED",
+        jobId: job.jobId,
+        engineId: ENGINE_ID,
+        payload: job.payload
+      });
+    }
+
+    recordTelemetry({
+      event: "JOB_COMPLETED",
+      jobId: job.jobId,
+      engineId: ENGINE_ID,
+      payload: { jobType: job.jobType, duration: job.duration }
+    });
+  } catch (err) {
+    console.error(`[JOB COMPLETION ERROR] ${err.message}`);
+    failJob(job, onStatus, err.message);
+  }
+}
+
+function failJob(job, onStatus, error) {
+  try {
+    validateTransition(job.status, "failed");
+  } catch (err) {
+    // Already in terminal state, log but don't fail again
+    console.error(`[JOB ALREADY TERMINAL] ${job.jobId} in ${job.status}`);
+    return;
+  }
+
+  job.status = "failed";
+  job.failedAt = Date.now();
+  job.error = error;
+  job.duration = job.failedAt - (job.startedAt || job.dispatchedAt || job.queuedAt);
+
+  onStatus(job, "failed", error);
+
+  recordTelemetry({
+    event: "JOB_FAILED",
+    jobId: job.jobId,
+    engineId: ENGINE_ID,
+    payload: { jobType: job.jobType, error, duration: job.duration }
+  });
+
+  console.error(`[JOB FAILED] ${job.jobId}: ${error}`);
+}
 
 function getPendingEngineJobs() {
-  return [...enginePendingJobs];
+  return [...queue, ...Array.from(activeJobs.values())];
 }
 
 function simulateFailure(job) {
@@ -122,6 +214,17 @@ function simulateFailure(job) {
 
 function setEngineConnected(connected) {
   engineConnected = connected;
+  
+  if (!connected) {
+    // Fail all active jobs
+    activeJobs.forEach((job) => {
+      console.error(`[ENGINE DISCONNECT] Failing job ${job.jobId}`);
+      job.error = "ENGINE_DISCONNECTED";
+      job.status = "failed";
+      job.failedAt = Date.now();
+    });
+    activeJobs.clear();
+  }
 }
 
 module.exports = { addJob, getPendingEngineJobs, setEngineConnected };

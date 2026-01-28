@@ -29,7 +29,7 @@ function setupEngineSocket(io, jobQueue) {
       return socket.disconnect(true);
     }
   
-    console.log("[ENGINE CONNECTED]", socket.id);
+    console.log("[ENGINE CONNECTED]", socket.id, socket.engineId);
     log({
       type: "ENGINE_CONNECTED",
       socketId: socket.id,
@@ -38,8 +38,11 @@ function setupEngineSocket(io, jobQueue) {
 
     let lastHeartbeat = Date.now();
 
+    // Heartbeat handler
     socket.on("engine_heartbeat", () => {
       lastHeartbeat = Date.now();
+      socket.emit("heartbeat_ack", { ts: Date.now() });
+      log({ type: "ENGINE_HEARTBEAT", engineId: socket.engineId });
     });
 
     // Heartbeat watchdog
@@ -50,30 +53,67 @@ function setupEngineSocket(io, jobQueue) {
           type: "ENGINE_HEARTBEAT_TIMEOUT",
           engineId: socket.engineId
         });
+        jobQueue.setEngineConnected(false);
         socket.disconnect(true);
       }
     }, 5000);
 
+    // Engine ready - send pending jobs
     socket.on("engine_ready", () => {
+      console.log("[ENGINE READY]", socket.engineId);
+      log({ type: "ENGINE_READY", engineId: socket.engineId });
+      
+      socket.emit("ready_ack", { 
+        status: "acknowledged",
+        ts: Date.now() 
+      });
+
       const jobs = jobQueue.getPendingEngineJobs();
+      console.log(`[ENGINE] Sending ${jobs.length} pending jobs`);
 
       jobs.forEach(job => {
         socket.emit("engine_job", job);
-      
-        log({ type: "JOB_SENT", jobId: job.jobId });
-        
-        recordTelemetry({
-          event: "JOB_STARTED",
-          jobId: job.jobId,
-          engineId: socket.engineId,
-          payload: {
-            jobType: job.jobType
-          }
-        });
+        log({ type: "JOB_DISPATCHED_TO_ENGINE", jobId: job.jobId });
       });
     });
 
-    socket.on("engine_status", (data) => {
+    // Job acknowledgement from engine
+    socket.on("job_ack", (data) => {
+      const { jobId, status } = data;
+      console.log(`[ENGINE ACK] Job ${jobId}: ${status}`);
+      
+      log({
+        type: "JOB_ACK",
+        jobId,
+        status,
+        engineId: socket.engineId
+      });
+
+      socket.emit("ack_received", { jobId, ts: Date.now() });
+    });
+
+    // Job progress from engine
+    socket.on("job_progress", (data) => {
+      const { jobId, progress } = data;
+      console.log(`[ENGINE PROGRESS] Job ${jobId}: ${progress}%`);
+      
+      log({
+        type: "JOB_PROGRESS",
+        jobId,
+        progress,
+        engineId: socket.engineId
+      });
+
+      recordTelemetry({
+        event: "JOB_PROGRESS",
+        jobId,
+        engineId: socket.engineId,
+        payload: { progress }
+      });
+    });
+
+    // Job status update from engine
+    socket.on("job_status", (data) => {
       try {
         verifyEngineSignature(data);
         verifyAndConsumeNonce(data.nonce);
@@ -84,23 +124,36 @@ function setupEngineSocket(io, jobQueue) {
           reason: err.message,
           engineId: socket.engineId
         });
-        return socket.disconnect(true);
+        socket.emit("status_rejected", { reason: err.message });
+        return;
       }
     
-      const { jobId, jobType, status } = data.payload;
+      const { jobId, jobType, status, error } = data.payload;
 
-        log({
-          type: "ENGINE_STATUS",
-          jobId,
-          status,
-          engineId: socket.engineId
-        });
+      console.log(`[ENGINE STATUS] Job ${jobId}: ${status}`);
 
+      log({
+        type: "ENGINE_JOB_STATUS",
+        jobId,
+        status,
+        error,
+        engineId: socket.engineId
+      });
+
+      // Send acknowledgement
+      socket.emit("status_ack", { 
+        jobId, 
+        received: true,
+        ts: Date.now() 
+      });
+
+      // Record telemetry
+      if (status === "completed") {
         recordTelemetry({
-          event: "JOB_FINISHED",
+          event: "JOB_COMPLETED",
           jobId,
           engineId: socket.engineId,
-          payload: { status }
+          payload: { jobType }
         });
 
         if (jobType === "BUILD_SCENE") {
@@ -110,9 +163,7 @@ function setupEngineSocket(io, jobQueue) {
             engineId: socket.engineId,
             payload: {}
           });
-        }
-        
-        if (jobType === "SPAWN_ENTITY") {
+        } else if (jobType === "SPAWN_ENTITY") {
           recordTelemetry({
             event: "ENTITY_SPAWNED",
             jobId,
@@ -120,23 +171,42 @@ function setupEngineSocket(io, jobQueue) {
             payload: {}
           });
         }
-        
-        
-
+      } else if (status === "failed") {
+        recordTelemetry({
+          event: "JOB_FAILED",
+          jobId,
+          engineId: socket.engineId,
+          payload: { jobType, error }
+        });
+      }
     });
-    
-      
+
+    // Engine error reporting
+    socket.on("engine_error", (data) => {
+      console.error("[ENGINE ERROR]", data);
+      log({
+        type: "ENGINE_ERROR",
+        error: data.error,
+        details: data.details,
+        engineId: socket.engineId
+      });
+
+      socket.emit("error_ack", { received: true, ts: Date.now() });
+    });
 
     socket.on("disconnect", () => {
       clearInterval(heartbeatInterval);
+      console.log("[ENGINE DISCONNECTED]", socket.engineId);
       log({
         type: "ENGINE_DISCONNECTED",
         socketId: socket.id,
         engineId: socket.engineId
       });
+      jobQueue.setEngineConnected(false);
     });
-    
   });
+
+  return engineNS;
 }
 
 module.exports = { setupEngineSocket };

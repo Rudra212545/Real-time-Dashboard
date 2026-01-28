@@ -16,6 +16,7 @@
   const eventBus = require("./eventBus");
   const {recordBehaviour, getSessionBehaviours} = require("./telemetry/behaviourRecorder");
   const {buildSessionSummary} = require("./telemetry/sessionSummary");
+  const { convertToEngineSchema } = require("./engine/engine_adapter");
   const validateWorldSpec = require("./engine/world_spec_validator");
   const {buildEngineJobs} = require("./engine/engine_job_queue");
 
@@ -266,57 +267,24 @@
     
       attachHeartbeatHandlers(socket);
     
-      //JOB QUEUE
-  // JOB QUEUE
   socket.on("generate_world", (payload) => {
     console.log("generate_world event received:", payload);
 
     const { config, submittedAt } = payload;
     
-    // Check if it's a simple cube config
-    const isCubeConfig = config.color && config.size && !config.schema_version;
-    
-    if (isCubeConfig) {
-      // Handle simple cube preview job
-      const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
-      const job = {
-        jobId: `${jobBatchId}:CUBE_PREVIEW`,
-        userId: socket.userId,
-        jobType: "CUBE_PREVIEW",
-        payload: config,
-        submittedAt
-      };
-
-      addJob(job, (jobObj, status, error) => {
-        io.to(`user:${jobObj.userId}`).emit("job_status", {
-          jobId: jobObj.jobId,
-          jobType: jobObj.jobType,
-          status,
-          error,
-          submittedAt: jobObj.submittedAt,
-          userId: jobObj.userId
-        });
-
-        if (status === "finished") {
-          io.to(`user:${jobObj.userId}`).emit("cube_update", config);
-        }
-      });
-      return;
-    }
-
-    // Handle full world spec
-    let worldSpec;
+    let engineSchema;
     try {
-      worldSpec = validateWorldSpec(config);
-      console.log("[WORLD SPEC VALIDATED]");
+      engineSchema = convertToEngineSchema(config);
+      validateWorldSpec(engineSchema);
+      console.log("[ENGINE SCHEMA VALIDATED]");
     } catch (err) {
-      console.error("[WORLD SPEC VALIDATION FAILED]");
-      console.error(err.message);
+      console.error("[SCHEMA CONVERSION/VALIDATION FAILED]", err.message);
       return;
     }
     
-    const engineJobs = buildEngineJobs(worldSpec);
+    const engineJobs = buildEngineJobs(engineSchema);
     const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+    let completedJobs = 0;
 
     engineJobs.forEach((engineJob) => {
       const job = {
@@ -334,15 +302,27 @@
           status,
           error,
           submittedAt: jobObj.submittedAt,
-          userId: jobObj.userId
+          userId: jobObj.userId,
+          queuedAt: jobObj.queuedAt,
+          dispatchedAt: jobObj.dispatchedAt,
+          startedAt: jobObj.startedAt,
+          completedAt: jobObj.completedAt,
+          duration: jobObj.duration
         });
 
-        if (status === "finished") {
+        if (status === "completed") {
+          completedJobs++;
+          
           io.to(`user:${jobObj.userId}`).emit("engine_job_finished", {
             jobType: jobObj.jobType,
             jobId: jobObj.jobId,
             finishedAt: Date.now()
           });
+
+          // Update preview only after ALL jobs complete
+          if (completedJobs === engineJobs.length) {
+            io.to(`user:${jobObj.userId}`).emit("world_update", engineSchema);
+          }
 
           orchestrator.evaluate({
             type: "build_finished",

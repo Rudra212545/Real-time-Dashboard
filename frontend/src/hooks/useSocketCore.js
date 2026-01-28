@@ -44,14 +44,8 @@ export default function useSocketCore({
     socket.on("presence_update", data => setPresenceList({ ...data }));
     socket.on("auth_context", setAuthContext);
 
-    socket.on("job_status", (job) => {
-      if (job.status === "finished" && job.config) {
-        setCubeConfig(job.config);
-      }
-    });
-
-    socket.on("cube_update", (config) => {
-      setCubeConfig(config);
+    socket.on("world_update", (engineSchema) => {
+      setCubeConfig(engineSchema);
     });
  
     return () => socket.removeAllListeners();

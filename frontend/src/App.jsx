@@ -46,8 +46,17 @@ function App() {
   });
 
   const [cubeConfig, setCubeConfig] = useState({
-    color: "#66ffdd",
-    size: 1,
+    schema_version: "1.0",
+    world: { id: "world_default", name: "Default", gravity: [0, -9.8, 0] },
+    scene: { id: "scene_default", ambientLight: [1, 1, 1], skybox: "default" },
+    entities: [{
+      id: "cube_01",
+      type: "object",
+      transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      material: { shader: "standard", texture: "none", color: [0.4, 1, 0.87] },
+      components: { mesh: "cube", collider: "box", script: "" }
+    }],
+    quests: []
   });
 
   const [agents, dispatchAgentEvent] = useReducer(
@@ -70,7 +79,14 @@ function App() {
     setReplayAlerts,
     setHeartbeatStatus,
     setAuthContext,
-    setCubeConfig,
+    setCubeConfig: (engineSchema) => {
+      // Handle both legacy and engine schema
+      if (engineSchema.entities) {
+        setCubeConfig(engineSchema);
+      } else {
+        setCubeConfig(engineSchema);
+      }
+    },
   });
 
   return (
