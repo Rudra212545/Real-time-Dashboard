@@ -1,5 +1,3 @@
-// Engine Adapter - Converts LLM output to Engine Schema v1.0
-
 function convertLLMToEngineSchema(llmData) {
   const worldId = `world_${llmData.metadata.level_name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')}`;
   const sceneId = `scene_${llmData.environment.type}`;

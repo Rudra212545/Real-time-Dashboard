@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import socket from "../socket/socket";
 import { SAMPLE_WORLDS } from "../data/sampleWorlds";
 
@@ -6,17 +6,54 @@ const WORLDS = ["forest", "desert", "ocean", "volcano"];
 
 export default function DemoModePanel() {
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState({ stage: "", percent: 0 });
+  const [selectedWorld, setSelectedWorld] = useState("");
+
+  useEffect(() => {
+    const handleJobStatus = (job) => {
+      if (!running) return;
+      
+      if (job.status === "queued") {
+        setProgress({ stage: "Queuing jobs...", percent: 25 });
+      } else if (job.status === "dispatched") {
+        setProgress({ stage: "Dispatching to engine...", percent: 50 });
+      } else if (job.status === "running") {
+        setProgress({ stage: `Building ${job.jobType}...`, percent: 75 });
+      } else if (job.status === "completed") {
+        setProgress({ stage: "Complete!", percent: 100 });
+      } else if (job.status === "failed") {
+        setProgress({ stage: "Failed", percent: 0 });
+        setRunning(false);
+      }
+    };
+
+    const handleWorldUpdate = () => {
+      setProgress({ stage: "Preview updated!", percent: 100 });
+      setTimeout(() => {
+        setRunning(false);
+        setProgress({ stage: "", percent: 0 });
+      }, 1500);
+    };
+
+    socket.on("job_status", handleJobStatus);
+    socket.on("world_update", handleWorldUpdate);
+
+    return () => {
+      socket.off("job_status", handleJobStatus);
+      socket.off("world_update", handleWorldUpdate);
+    };
+  }, [running]);
 
   const runDemo = () => {
     setRunning(true);
     const world = WORLDS[Math.floor(Math.random() * WORLDS.length)];
+    setSelectedWorld(world);
+    setProgress({ stage: "Generating world...", percent: 10 });
     
     socket.emit("generate_world", {
       config: SAMPLE_WORLDS[world],
       submittedAt: Date.now(),
     });
-    
-    setTimeout(() => setRunning(false), 2000);
   };
 
   return (
@@ -45,7 +82,7 @@ export default function DemoModePanel() {
         </p>
       </div>
       
-      <div className="relative flex-1 flex flex-col justify-center">
+      <div className="relative flex-1 flex flex-col justify-center gap-4">
         <button
           onClick={runDemo}
           disabled={running}
@@ -64,6 +101,30 @@ export default function DemoModePanel() {
           <span className="text-3xl">{running ? "🔄" : "▶️"}</span>
           <span>{running ? "Running Demo..." : "Launch Demo"}</span>
         </button>
+
+        {running && (
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                {progress.stage}
+              </span>
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                {progress.percent}%
+              </span>
+            </div>
+            <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            {selectedWorld && (
+              <p className="mt-2 text-xs text-center text-slate-600 dark:text-slate-400">
+                World: <span className="font-semibold capitalize">{selectedWorld}</span>
+              </p>
+            )}
+          </div>
+        )}
       </div>
       
       <div className="relative mt-6 pt-4 border-t border-slate-200/60 dark:border-white/10">
