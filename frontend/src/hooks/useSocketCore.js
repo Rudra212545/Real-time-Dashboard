@@ -45,9 +45,22 @@ export default function useSocketCore({
     socket.on("auth_context", setAuthContext);
 
     socket.on("world_update", (engineSchema) => {
+      if (!engineSchema || typeof engineSchema !== 'object') {
+        console.error("[SOCKET] Invalid world_update schema received");
+        return;
+      }
       setCubeConfig(engineSchema);
     });
  
-    return () => socket.removeAllListeners();
+    return () => {
+      socket.removeAllListeners("action_update");
+      socket.removeAllListeners("agent_update");
+      socket.removeAllListeners("agent_nonce");
+      socket.removeAllListeners("action_error");
+      socket.removeAllListeners("agent_heartbeat_result");
+      socket.removeAllListeners("presence_update");
+      socket.removeAllListeners("auth_context");
+      socket.removeAllListeners("world_update");
+    };
   }, []);
 }

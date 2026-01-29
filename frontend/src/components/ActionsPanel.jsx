@@ -3,16 +3,21 @@ import socket from "../socket/socket";
 import CryptoJS from "crypto-js";
 
 function signAction(type, payload) {
-  const ts = Date.now();
-  const nonce = Math.random().toString(36).substring(2, 12);
-  const message = `${type}|${JSON.stringify(payload)}|${ts}|${nonce}`;
+  try {
+    const ts = Date.now();
+    const nonce = Math.random().toString(36).substring(2, 12);
+    const message = `${type}|${JSON.stringify(payload)}|${ts}|${nonce}`;
 
-  const sig = CryptoJS.HmacSHA256(
-    message,
-    "HMAC_SECRET_987654321"
-  ).toString(CryptoJS.enc.Hex);
+    const sig = CryptoJS.HmacSHA256(
+      message,
+      "HMAC_SECRET_987654321"
+    ).toString(CryptoJS.enc.Hex);
 
-  return { ts, nonce, sig };
+    return { ts, nonce, sig };
+  } catch (err) {
+    console.error("[ACTION] Signature generation failed:", err.message);
+    throw new Error("Failed to sign action");
+  }
 }
 
 export default function ActionsPanel({

@@ -1,8 +1,19 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-// In-memory nonce store 
-const usedNonces = new Set();
+// In-memory nonce store with TTL
+const usedNonces = new Map(); // nonce -> expiresAt
+const NONCE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Cleanup expired nonces periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [nonce, expiresAt] of usedNonces.entries()) {
+    if (expiresAt < now) {
+      usedNonces.delete(nonce);
+    }
+  }
+}, 60 * 1000); // Run every minute
 
 
 //   1. Verify Engine JWT
@@ -54,7 +65,7 @@ function verifyAndConsumeNonce(nonce) {
   if (usedNonces.has(nonce)) {
     throw new Error("ENGINE_NONCE_REPLAY");
   }
-  usedNonces.add(nonce);
+  usedNonces.set(nonce, Date.now() + NONCE_TTL);
 }
 
 module.exports = {

@@ -1,8 +1,6 @@
 # Failure Simulation Test Report
 
-**Date:** 2024  
-**Task:** Day 7 — Failure Simulation  
-**Engineer:** Internship Task Submission
+
 
 ---
 

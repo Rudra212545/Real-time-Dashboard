@@ -270,7 +270,17 @@
   socket.on("generate_world", (payload) => {
     console.log("generate_world event received:", payload);
 
+    if (!payload || typeof payload !== 'object') {
+      console.error("[GENERATE_WORLD] Invalid payload");
+      return socket.emit("job_error", { error: "invalid_payload" });
+    }
+
     const { config, submittedAt } = payload;
+    
+    if (!config) {
+      console.error("[GENERATE_WORLD] Missing config");
+      return socket.emit("job_error", { error: "missing_config" });
+    }
     
     let engineSchema;
     try {
@@ -279,10 +289,17 @@
       console.log("[ENGINE SCHEMA VALIDATED]");
     } catch (err) {
       console.error("[SCHEMA CONVERSION/VALIDATION FAILED]", err.message);
-      return;
+      return socket.emit("job_error", { error: "schema_validation_failed", message: err.message });
     }
     
-    const engineJobs = buildEngineJobs(engineSchema);
+    let engineJobs;
+    try {
+      engineJobs = buildEngineJobs(engineSchema);
+    } catch (err) {
+      console.error("[BUILD ENGINE JOBS FAILED]", err.message);
+      return socket.emit("job_error", { error: "job_build_failed", message: err.message });
+    }
+
     const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
     let completedJobs = 0;
 

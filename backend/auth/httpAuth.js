@@ -1,4 +1,4 @@
-const { verifyToken } = require("./jwt");
+const jwt = require("./jwt");
 
 function verifyJwtMiddleware(requiredRoles = []) {
   return (req, res, next) => {
@@ -9,7 +9,7 @@ function verifyJwtMiddleware(requiredRoles = []) {
     const token = auth.slice(7);
 
     try {
-      const decoded = verifyToken(token);
+      const decoded = jwt.verifyToken(token);
 
       if (requiredRoles.length && !requiredRoles.some(r => decoded.roles.includes(r))) {
         return res.status(403).send("Forbidden");

@@ -23,30 +23,35 @@ function convertLLMToEngineSchema(llmData) {
 
     entities: entities,
 
-    quests: convertQuests(llmData.quests)
+    quests: Array.isArray(llmData.quests) ? convertQuests(llmData.quests) : []
   };
 }
 
 function createPlayerEntity() {
-  return {
-    id: "player_1",
-    type: "player",
-    transform: {
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1]
-    },
-    material: {
-      shader: "standard",
-      texture: "player_default",
-      color: [1, 1, 1]
-    },
-    components: {
-      mesh: "player",
-      collider: "box",
-      script: "player_controller"
-    }
-  };
+  try {
+    return {
+      id: "player_1",
+      type: "player",
+      transform: {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1]
+      },
+      material: {
+        shader: "standard",
+        texture: "player_default",
+        color: [1, 1, 1]
+      },
+      components: {
+        mesh: "player",
+        collider: "box",
+        script: "player_controller"
+      }
+    };
+  } catch (err) {
+    console.error("[ADAPTER] Failed to create player entity:", err.message);
+    throw new Error("Failed to create player entity");
+  }
 }
 
 function convertCubeToEngineSchema(cubeConfig) {
@@ -93,6 +98,10 @@ function convertCubeToEngineSchema(cubeConfig) {
 }
 
 function convertToEngineSchema(input) {
+  if (!input || typeof input !== 'object') {
+    throw new Error("Invalid input: expected object");
+  }
+
   if (input.schema_version === "1.0") {
     return input;
   }
@@ -109,7 +118,17 @@ function convertToEngineSchema(input) {
 }
 
 function convertNPCsToEntities(npcs) {
+  if (!Array.isArray(npcs)) {
+    console.warn("[ADAPTER] NPCs is not an array, returning empty array");
+    return [];
+  }
+
   return npcs.map((npc, idx) => {
+    if (!npc || typeof npc !== 'object') {
+      console.warn(`[ADAPTER] Invalid NPC at index ${idx}, skipping`);
+      return null;
+    }
+
     const position = parsePosition(npc.location);
     
     return {
@@ -131,7 +150,7 @@ function convertNPCsToEntities(npcs) {
         script: npc.behavior || ""
       }
     };
-  });
+  }).filter(Boolean);
 }
 
 function convertQuests(quests) {
@@ -142,20 +161,21 @@ function convertQuests(quests) {
   }));
 }
 
+const LIGHTING_MAP = new Map([
+  ["harsh_sunlight", [1, 0.95, 0.8]],
+  ["filtered_sunlight", [0.8, 0.9, 0.7]],
+  ["dappled_sunlight", [0.9, 0.95, 0.8]],
+  ["filtered_moonlight", [0.3, 0.3, 0.4]],
+  ["torch_light", [1, 0.7, 0.4]],
+  ["ambient_glow", [0.6, 0.6, 0.8]],
+  ["dim_flickering", [0.3, 0.3, 0.4]],
+  ["starlight", [0.2, 0.2, 0.3]],
+  ["artificial_lighting", [0.9, 0.9, 1]],
+  ["dynamic_lighting", [0.8, 0.8, 0.8]]
+]);
+
 function parseLighting(lighting) {
-  const lightMap = {
-    "harsh_sunlight": [1, 0.95, 0.8],
-    "filtered_sunlight": [0.8, 0.9, 0.7],
-    "dappled_sunlight": [0.9, 0.95, 0.8],
-    "filtered_moonlight": [0.3, 0.3, 0.4],
-    "torch_light": [1, 0.7, 0.4],
-    "ambient_glow": [0.6, 0.6, 0.8],
-    "dim_flickering": [0.3, 0.3, 0.4],
-    "starlight": [0.2, 0.2, 0.3],
-    "artificial_lighting": [0.9, 0.9, 1],
-    "dynamic_lighting": [0.8, 0.8, 0.8]
-  };
-  return lightMap[lighting] || [1, 1, 1];
+  return LIGHTING_MAP.get(lighting) || [1, 1, 1];
 }
 
 function parsePosition(location) {
@@ -173,9 +193,14 @@ function parsePosition(location) {
 }
 
 function extractTriggerEntity(quest) {
-  if (quest.requirements && quest.requirements.length > 0) {
+  if (!quest || typeof quest !== 'object') {
+    console.warn("[ADAPTER] Invalid quest object, defaulting to player_1");
+    return "player_1";
+  }
+
+  if (quest.requirements && Array.isArray(quest.requirements) && quest.requirements.length > 0) {
     const req = quest.requirements[0];
-    if (req.includes("npc") || req.includes("entity")) {
+    if (typeof req === 'string' && (req.includes("npc") || req.includes("entity"))) {
       return req;
     }
   }

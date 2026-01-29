@@ -1,7 +1,5 @@
 # Demo Mode — One-Click Pipeline
 
-
-
 ---
 
 ## Overview

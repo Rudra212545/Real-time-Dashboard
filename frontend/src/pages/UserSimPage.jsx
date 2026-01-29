@@ -8,15 +8,20 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 // UTIL: SIGN ACTION
 
 function signAction(type, payload) {
-  const ts = Date.now();
-  const nonce = Math.random().toString(36).substring(2, 12);
-  const message = `${type}|${JSON.stringify(payload)}|${ts}|${nonce}`;
-  const sig = CryptoJS.HmacSHA256(
-    message,
-    "HMAC_SECRET_987654321"
-  ).toString(CryptoJS.enc.Hex);
+  try {
+    const ts = Date.now();
+    const nonce = Math.random().toString(36).substring(2, 12);
+    const message = `${type}|${JSON.stringify(payload)}|${ts}|${nonce}`;
+    const sig = CryptoJS.HmacSHA256(
+      message,
+      "HMAC_SECRET_987654321"
+    ).toString(CryptoJS.enc.Hex);
 
-  return { ts, nonce, sig };
+    return { ts, nonce, sig };
+  } catch (err) {
+    console.error("[SIM] Signature generation failed:", err.message);
+    throw new Error("Failed to sign action");
+  }
 }
 
 

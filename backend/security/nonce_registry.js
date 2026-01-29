@@ -16,12 +16,20 @@ function rotateNonce(agentId) {
   }
 
   // mark nonce as seen (so replay can't re-use)
-  perAgent.get(agentId).seen.set(nonce, now + TTL);
+  const record = perAgent.get(agentId);
+  if (record) {
+    record.seen.set(nonce, now + TTL);
+  }
 
   return nonce;
 }
 
 function verifyAndConsume(agentId, nonce) {
+  if (!nonce || typeof nonce !== 'string') {
+    console.warn("[NONCE] Invalid nonce provided");
+    return false;
+  }
+
   const now = Date.now();
   if (!perAgent.has(agentId)) perAgent.set(agentId, { currentNonce: null, seen: new Map() });
 

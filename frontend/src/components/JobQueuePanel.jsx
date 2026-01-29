@@ -75,66 +75,100 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
             "bg-white/70 dark:bg-slate-950/80",
             "border border-slate-200/70 dark:border-slate-800/70",
             "backdrop-blur-xl",
+            "max-h-[700px]",
+            // Custom scrollbar
+            "scrollbar-thin scrollbar-thumb-indigo-500/50 scrollbar-track-slate-200/30",
+            "dark:scrollbar-thumb-indigo-400/50 dark:scrollbar-track-slate-800/30",
+            "hover:scrollbar-thumb-indigo-600/70 dark:hover:scrollbar-thumb-indigo-300/70",
           ].join(" ")}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgb(99 102 241 / 0.5) rgb(226 232 240 / 0.3)'
+          }}
         >
           {jobHistory.map((job) => {
-            const statusColor =
-              job.status === "finished"
-                ? "text-emerald-600 dark:text-emerald-300"
-                : job.status === "failed"
-                ? "text-red-600 dark:text-red-300"
-                : job.status === "started"
-                ? "text-amber-600 dark:text-amber-300"
-                : "text-sky-600 dark:text-sky-300";
+            // Status-based colors
+            const statusConfig = {
+              completed: {
+                text: "text-emerald-600 dark:text-emerald-300",
+                dot: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]",
+                bg: "bg-gradient-to-br from-emerald-50/90 to-emerald-100/90 dark:from-emerald-950/40 dark:to-emerald-900/40",
+                border: "border-emerald-300/70 dark:border-emerald-700/70",
+                accent: "bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600",
+                glow: "bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700",
+                shadow: "hover:shadow-emerald-500/25"
+              },
+              failed: {
+                text: "text-red-600 dark:text-red-300",
+                dot: "bg-red-400 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]",
+                bg: "bg-gradient-to-br from-red-50/90 to-red-100/90 dark:from-red-950/40 dark:to-red-900/40",
+                border: "border-red-300/70 dark:border-red-700/70",
+                accent: "bg-gradient-to-b from-red-500 via-red-600 to-red-700",
+                glow: "bg-gradient-to-r from-red-500 via-red-600 to-red-700",
+                shadow: "hover:shadow-red-500/25"
+              },
+              running: {
+                text: "text-amber-600 dark:text-amber-300",
+                dot: "bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.6)]",
+                bg: "bg-gradient-to-br from-amber-50/90 to-amber-100/90 dark:from-amber-950/40 dark:to-amber-900/40",
+                border: "border-amber-300/70 dark:border-amber-700/70",
+                accent: "bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600",
+                glow: "bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700",
+                shadow: "hover:shadow-amber-500/25"
+              },
+              dispatched: {
+                text: "text-blue-600 dark:text-blue-300",
+                dot: "bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.6)]",
+                bg: "bg-gradient-to-br from-blue-50/90 to-blue-100/90 dark:from-blue-950/40 dark:to-blue-900/40",
+                border: "border-blue-300/70 dark:border-blue-700/70",
+                accent: "bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600",
+                glow: "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700",
+                shadow: "hover:shadow-blue-500/25"
+              },
+              queued: {
+                text: "text-sky-600 dark:text-sky-300",
+                dot: "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]",
+                bg: "bg-gradient-to-br from-sky-50/90 to-sky-100/90 dark:from-sky-950/40 dark:to-sky-900/40",
+                border: "border-sky-300/70 dark:border-sky-700/70",
+                accent: "bg-gradient-to-b from-sky-400 via-sky-500 to-sky-600",
+                glow: "bg-gradient-to-r from-sky-500 via-sky-600 to-sky-700",
+                shadow: "hover:shadow-sky-500/25"
+              }
+            };
 
-            const dotColor =
-              job.status === "finished"
-                ? "bg-emerald-400"
-                : job.status === "failed"
-                ? "bg-red-400"
-                : job.status === "started"
-                ? "bg-amber-400"
-                : "bg-sky-400";
+            const config = statusConfig[job.status] || statusConfig.queued;
 
             return (
               <li
                 key={job.id}
                 className={[
                   "relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm group",
-                  job.status === "failed"
-                    ? "bg-gradient-to-br from-red-50/90 to-red-100/90 dark:from-red-950/40 dark:to-red-900/40"
-                    : "bg-gradient-to-br from-white/80 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-800/80",
-                  job.status === "failed"
-                    ? "border border-red-300/70 dark:border-red-700/70"
-                    : "border border-slate-200/70 dark:border-slate-700/70",
+                  config.bg,
+                  "border",
+                  config.border,
                   "text-slate-900 dark:text-slate-100",
                   "transition-all duration-300",
-                  job.status === "failed"
-                    ? "hover:shadow-lg hover:shadow-red-500/25"
-                    : "hover:-translate-y-0.5 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/25",
+                  "hover:-translate-y-0.5 hover:shadow-lg",
+                  config.shadow,
                 ].join(" ")}
               >
                 {/* Accent */}
                 <div className={[
                   "absolute inset-y-0 left-0 w-[3px] rounded-l-2xl opacity-80",
-                  job.status === "failed"
-                    ? "bg-gradient-to-b from-red-500 via-red-600 to-red-700"
-                    : "bg-gradient-to-b from-sky-400 via-indigo-400 to-purple-400"
+                  config.accent
                 ].join(" ")} />
 
                 {/* Hover glow */}
                 <div className={[
                   "pointer-events-none absolute inset-x-0 top-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                  job.status === "failed"
-                    ? "bg-gradient-to-r from-red-500 via-red-600 to-red-700"
-                    : "bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400"
+                  config.glow
                 ].join(" ")} />
 
                 <div className="ml-2 flex-1 min-w-0 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex h-2 w-2 rounded-full ${dotColor} ${job.status === 'failed' ? 'animate-pulse' : ''}`} />
-                      <span className={`font-bold text-xs ${statusColor} uppercase tracking-wide`}>
+                      <span className={`inline-flex h-2 w-2 rounded-full ${config.dot}`} />
+                      <span className={`font-bold text-xs ${config.text} uppercase tracking-wide`}>
                         {job.status}
                       </span>
                     </div>

@@ -40,7 +40,13 @@ if (process.env.MONGO_URI && process.env.MONGO_URI !== 'mongodb://localhost:2701
 // sockets
 const io = initSocket(server);
 setupEngineSocket(io, jobQueue);
-const PORT = process.env.PORT;
+
+const PORT = process.env.PORT || 3000;
+
+if (!process.env.PORT) {
+  console.warn("[CONFIG] PORT not set in environment, using default: 5000");
+}
+
 // server
 server.listen(PORT, () => {
   console.log(`server running at PORT : ${PORT}`);

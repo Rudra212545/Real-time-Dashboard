@@ -7,6 +7,10 @@ function socketAuthMiddleware(socket, next) {
 
   // 🔐 Simulated agents must be explicit
   if (isSimulated) {
+    if (typeof isSimulated !== 'boolean') {
+      console.warn("[AUTH] Invalid simulated flag type");
+      return next(new Error("INVALID_SIMULATED_FLAG"));
+    }
     socket.userId = "SimulatedAgent";
     socket.role = "agent";
     socket.isSimulated = true;

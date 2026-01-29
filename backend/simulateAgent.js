@@ -25,6 +25,16 @@ let latestNonce = null;
 
 // Day-2: receive per-agent nonce from server
 socket.on("agent_nonce", (nonceMap) => {
+  if (!nonceMap || typeof nonceMap !== 'object') {
+    console.error("❌ Invalid nonce map received");
+    return;
+  }
+
+  if (!nonceMap[AGENT_ID]) {
+    console.error(`❌ No nonce found for ${AGENT_ID}`);
+    return;
+  }
+
   latestNonce = nonceMap[AGENT_ID];
   console.log(`🔑 Received nonce for ${AGENT_ID}:`, latestNonce);
 
@@ -34,8 +44,13 @@ socket.on("agent_nonce", (nonceMap) => {
 
 // Helper function: sign the heartbeat body
 function signHeartbeat(agentId, ts, body, nonce) {
-  const message = `${agentId}|${ts}|${body}`; 
-  return crypto.createHmac("sha256", SECRET).update(message).digest("hex");
+  try {
+    const message = `${agentId}|${ts}|${body}`; 
+    return crypto.createHmac("sha256", SECRET).update(message).digest("hex");
+  } catch (err) {
+    console.error("❌ Signature generation failed:", err.message);
+    throw err;
+  }
 }
 
 // Send signed heartbeat every 5 seconds

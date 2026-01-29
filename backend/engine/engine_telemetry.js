@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const TELEMETRY_PATH = path.join(process.cwd(), "telemetry_samples.json");
+const TELEMETRY_PATH = path.join(__dirname, "..", "telemetry_samples.json");
 
 let sequenceNumber = 0;
 const eventBuffer = [];
@@ -20,15 +20,24 @@ function recordTelemetry(event) {
   };
 
   eventBuffer.push(entry);
-  fs.appendFileSync(TELEMETRY_PATH, JSON.stringify(entry) + "\n");
+  try {
+    fs.appendFileSync(TELEMETRY_PATH, JSON.stringify(entry) + "\n");
+  } catch (err) {
+    console.error("[TELEMETRY] Failed to write telemetry:", err.message);
+  }
 }
 
 
 function loadTelemetry() {
   if (!fs.existsSync(TELEMETRY_PATH)) return [];
   
-  const lines = fs.readFileSync(TELEMETRY_PATH, "utf-8").split("\n").filter(Boolean);
-  return lines.map(line => JSON.parse(line)).sort((a, b) => a.seq - b.seq);
+  try {
+    const lines = fs.readFileSync(TELEMETRY_PATH, "utf-8").split("\n").filter(Boolean);
+    return lines.map(line => JSON.parse(line)).sort((a, b) => a.seq - b.seq);
+  } catch (err) {
+    console.error("[TELEMETRY] Failed to load telemetry:", err.message);
+    return [];
+  }
 }
 
 

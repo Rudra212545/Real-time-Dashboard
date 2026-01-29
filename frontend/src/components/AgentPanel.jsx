@@ -102,31 +102,56 @@ export default function AgentPanel({
                 role="region"
                 aria-label={`${name} status`}
                 className={[
-                  "relative min-w-[220px] max-w-xs rounded-2xl overflow-hidden group",
-                  "transition-all duration-300",
+                  "relative min-w-[280px] max-w-md rounded-2xl overflow-hidden group",
+                  "transition-all duration-500",
                   "bg-gradient-to-br from-white/80 to-slate-100/80",
                   "dark:from-slate-900/80 dark:to-slate-800/80",
-                  "border border-slate-200 dark:border-slate-700/80",
+                  "border-2",
+                  stateKey === "triggered" ? "border-rose-400/70 shadow-lg shadow-rose-500/30" :
+                  stateKey === "cooldown" ? "border-amber-400/70 shadow-lg shadow-amber-500/30" :
+                  stateKey === "watching" ? "border-sky-400/70 shadow-lg shadow-sky-500/20" :
+                  "border-slate-200 dark:border-slate-700/80",
                   "hover:border-indigo-400/70 hover:shadow-indigo-500/25",
                   compactMode ? "p-3" : "p-4",
+                  // Scale and glow based on state
+                  stateKey === "triggered" || stateKey === "cooldown" ? "scale-105" : "scale-100",
                 ].join(" ")}
               >
+                {/* State glow effect */}
+                {(stateKey === "triggered" || stateKey === "cooldown") && (
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className={[
+                      "absolute inset-0 opacity-20 blur-xl",
+                      stateKey === "triggered" ? "bg-rose-500" : "bg-amber-500"
+                    ].join(" ")} />
+                  </div>
+                )}
                 {/* Header row */}
                 <div className="relative flex items-center justify-between mb-2">
-                  <div className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate">
+                  <div className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate flex items-center gap-2">
+                    <span className={[
+                      "text-lg",
+                      stateKey === "triggered" ? "animate-pulse" : ""
+                    ].join(" ")}>
+                      {stateKey === "triggered" ? "⚡" : stateKey === "cooldown" ? "⏳" : stateKey === "watching" ? "👁️" : "💤"}
+                    </span>
                     {name}
                   </div>
                   <div
-                    className={`px-2.5 py-1 text-[11px] rounded-full flex items-center gap-1 shadow-sm ${stateColor}`}
+                    className={[
+                      "px-2.5 py-1 text-[11px] rounded-full flex items-center gap-1 shadow-sm",
+                      stateColor,
+                      stateKey === "triggered" || stateKey === "cooldown" ? "animate-pulse" : ""
+                    ].join(" ")}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-                    <span className="capitalize">{stateLabel}</span>
+                    <span className="capitalize font-semibold">{stateLabel}</span>
                   </div>
                 </div>
 
                 {/* Meta */}
                 <div className="space-y-1 text-[12px] text-slate-700 dark:text-slate-200">
-                  <div className="truncate">
+                  <div className="break-words">
                     <span className="text-[10px] uppercase tracking-wide text-indigo-400">
                       Message:
                     </span>{" "}
@@ -135,7 +160,7 @@ export default function AgentPanel({
                     </span>
                   </div>
 
-                  <div className="truncate">
+                  <div className="break-words">
                     <span className="text-[10px] uppercase tracking-wide text-indigo-400">
                       Reason:
                     </span>{" "}
