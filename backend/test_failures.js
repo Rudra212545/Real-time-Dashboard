@@ -7,7 +7,7 @@ const token = jwt.sign({ userId: "test_user", role: "user" }, JWT_SECRET);
 
 const socket = io("http://localhost:3000", {
   auth: {
-    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX3doYWMiLCJyb2xlcyI6WyJ1c2VyIl0sImlhdCI6MTc2OTA2MjQ2OCwiZXhwIjoxNzY5MDY2MDY4LCJpc3MiOiJtaWNyb2JyaWRnZS5pbnRlcm5hbCJ9.7pPhlidRc9vD-dNN-ZDveJIsdQ5nnRO2pV9GnJdPL2g"
+    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX3kwMzAiLCJyb2xlcyI6WyJ1c2VyIl0sImlhdCI6MTc2OTY4ODMwOCwiZXhwIjoxNzY5NjkxOTA4LCJpc3MiOiJtaWNyb2JyaWRnZS5pbnRlcm5hbCJ9.BIG9DeV6SkbXsaxH0cJHN3QUW8gbu8NqVjnoTwUrgzU"
   }
 });
 

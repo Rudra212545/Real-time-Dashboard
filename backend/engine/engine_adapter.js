@@ -1,14 +1,21 @@
+const { buildEngineJobs } = require("./engine_job_queue");
+
 function convertLLMToEngineSchema(llmData) {
-  const worldId = `world_${llmData.metadata.level_name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')}`;
+  const worldId = `world_${llmData.metadata.level_name
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")}`;
+
   const sceneId = `scene_${llmData.environment.type}`;
 
-  const npcEntities = convertNPCsToEntities(llmData.npcs);
-  const playerEntity = createPlayerEntity();
-  const entities = [playerEntity, ...npcEntities];
+  const entities = [
+    createPlayerEntity(),
+    ...convertNPCsToEntities(llmData.npcs)
+  ];
 
-  return {
+  const worldSpec = {
     schema_version: "1.0",
-    
+
     world: {
       id: worldId,
       name: llmData.metadata.level_name,
@@ -18,14 +25,28 @@ function convertLLMToEngineSchema(llmData) {
     scene: {
       id: sceneId,
       ambientLight: parseLighting(llmData.environment.lighting),
-      skybox: llmData.environment.type + "_sky"
+      skybox: `${llmData.environment.type}_sky`
     },
 
-    entities: entities,
+    entities,
 
-    quests: Array.isArray(llmData.quests) ? convertQuests(llmData.quests) : []
+    quests: Array.isArray(llmData.quests)
+      ? convertQuests(llmData.quests)
+      : []
   };
+
+  // 🔒 REQUIRED BY FROZEN SCHEMA
+  worldSpec.jobs = buildEngineJobs(worldSpec).map(job => ({
+    jobId: job.jobId,
+    jobType: job.jobType,
+    status: "queued",
+    submittedAt: Date.now(),
+    payload: job.payload
+  }));
+
+  return worldSpec;
 }
+
 
 function createPlayerEntity() {
   try {
@@ -58,9 +79,9 @@ function convertCubeToEngineSchema(cubeConfig) {
   const rgb = hexToRgb(cubeConfig.color);
   const size = cubeConfig.size || 1;
 
-  return {
+  const worldSpec = {
     schema_version: "1.0",
-    
+
     world: {
       id: "world_cube_demo",
       name: "Cube Demo",
@@ -95,7 +116,18 @@ function convertCubeToEngineSchema(cubeConfig) {
 
     quests: []
   };
+
+  worldSpec.jobs = buildEngineJobs(worldSpec).map(job => ({
+    jobId: job.jobId,
+    jobType: job.jobType,
+    status: "queued",
+    submittedAt: Date.now(),
+    payload: job.payload
+  }));
+
+  return worldSpec;
 }
+
 
 function convertToEngineSchema(input) {
   if (!input || typeof input !== 'object') {
@@ -103,8 +135,21 @@ function convertToEngineSchema(input) {
   }
 
   if (input.schema_version === "1.0") {
+    if (!Array.isArray(input.jobs)) {
+      const jobs = buildEngineJobs(input).map(job => ({
+        jobId: job.jobId,
+        jobType: job.jobType,
+        status: "queued",
+        submittedAt: Date.now(),
+        payload: job.payload
+      }));
+  
+      return { ...input, jobs };
+    }
+  
     return input;
   }
+  
   
   if (input.color && input.size) {
     return convertCubeToEngineSchema(input);

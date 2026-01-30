@@ -45,6 +45,7 @@ export default function DemoModePanel() {
   }, [running]);
 
   const runDemo = () => {
+    if (running) return;
     setRunning(true);
     const world = WORLDS[Math.floor(Math.random() * WORLDS.length)];
     setSelectedWorld(world);

@@ -18,7 +18,7 @@
   const {buildSessionSummary} = require("./telemetry/sessionSummary");
   const { convertToEngineSchema } = require("./engine/engine_adapter");
   const validateWorldSpec = require("./engine/world_spec_validator");
-  const {buildEngineJobs} = require("./engine/engine_job_queue");
+  // const {buildEngineJobs} = require("./engine/engine_job_queue");
 
   function initSocket(server) {
 
@@ -292,25 +292,24 @@
       return socket.emit("job_error", { error: "schema_validation_failed", message: err.message });
     }
     
-    let engineJobs;
-    try {
-      engineJobs = buildEngineJobs(engineSchema);
-    } catch (err) {
-      console.error("[BUILD ENGINE JOBS FAILED]", err.message);
-      return socket.emit("job_error", { error: "job_build_failed", message: err.message });
-    }
+    // let engineJobs;
+    // try {
+    //   engineJobs = buildEngineJobs(engineSchema);
+    // } catch (err) {
+    //   console.error("[BUILD ENGINE JOBS FAILED]", err.message);
+    //   return socket.emit("job_error", { error: "job_build_failed", message: err.message });
+    // }
 
     const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
     let completedJobs = 0;
+    const totalJobs = engineSchema.jobs.length;
 
-    engineJobs.forEach((engineJob) => {
+    engineSchema.jobs.forEach((engineJob) => {
       const job = {
-        jobId: `${jobBatchId}:${engineJob.jobType}`,
-        userId: socket.userId,
-        jobType: engineJob.jobType,
-        payload: engineJob.payload,
-        submittedAt
+        ...engineJob,
+        userId: socket.userId
       };
+      
 
       addJob(job, (jobObj, status, error) => {
         io.to(`user:${jobObj.userId}`).emit("job_status", {
@@ -337,9 +336,10 @@
           });
 
           // Update preview only after ALL jobs complete
-          if (completedJobs === engineJobs.length) {
+          if (completedJobs === totalJobs) {
             io.to(`user:${jobObj.userId}`).emit("world_update", engineSchema);
           }
+          
 
           orchestrator.evaluate({
             type: "build_finished",
