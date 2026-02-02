@@ -23,4 +23,27 @@ router.post("/token", (req, res) => {
   res.json({ token });
 });
 
+router.get("/engine-token", (req, res) => {
+  const jwt = require('jsonwebtoken');
+  
+  const token = jwt.sign(
+    { 
+      engineId: 'atharva_engine_01',
+      role: 'engine'
+    },
+    process.env.JWT_SECRET,
+    { 
+      expiresIn: '365d',
+      issuer: 'sovereign-core'
+    }
+  );
+  
+  res.json({ 
+    token,
+    engineId: 'atharva_engine_01',
+    expiresIn: '365 days',
+    usage: 'Use this token to connect engine to /engine namespace'
+  });
+});
+
 module.exports = router;
