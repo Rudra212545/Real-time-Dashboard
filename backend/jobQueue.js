@@ -87,6 +87,20 @@ function processQueue() {
     // Emit to engine adapter
     jobDispatcher.emit('dispatch_to_engine', { job, worldSpec });
 
+    // If no engine connected, auto-complete after delay
+    if (!engineConnected) {
+      console.log(`[QUEUE] No engine - simulating completion for ${job.jobId}`);
+      setTimeout(() => {
+        updateJobStatus(job.jobId, 'running', { startedAt: Date.now() });
+        setTimeout(() => {
+          updateJobStatus(job.jobId, 'completed', { 
+            completedAt: Date.now(),
+            duration: 2000 
+          });
+        }, 2000);
+      }, 1000);
+    }
+
     // DON'T release lock - wait for engine to finish
     // processing will be set to false when job completes
 
