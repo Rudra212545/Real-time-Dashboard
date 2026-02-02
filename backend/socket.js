@@ -356,7 +356,7 @@
             failedAt: Date.now()
           });
         }
-      });
+      }, engineSchema);  // Pass worldSpec as third argument
     });
   });
 

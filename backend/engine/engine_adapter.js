@@ -261,8 +261,56 @@ function hexToRgb(hex) {
   ] : [1, 1, 1];
 }
 
+/**
+ * Prepare job for engine dispatch
+ * Converts internal job format to engine-compatible format
+ * 
+ * @param {Object} internalJob - Job from jobQueue
+ * @param {Object} worldSpec - Complete world specification
+ * @returns {Object} Engine-compatible job object
+ */
+function prepareEngineJob(internalJob, worldSpec) {
+  if (!internalJob || !internalJob.jobId) {
+    throw new Error("Invalid job: missing jobId");
+  }
+
+  if (!internalJob.jobType) {
+    throw new Error("Invalid job: missing jobType");
+  }
+
+  if (!worldSpec) {
+    throw new Error("Invalid job: missing worldSpec");
+  }
+
+  // Remove jobs array from world_spec (internal tracking only)
+  const cleanWorldSpec = {
+    schema_version: worldSpec.schema_version,
+    world: worldSpec.world,
+    scene: worldSpec.scene,
+    entities: worldSpec.entities,
+    quests: worldSpec.quests
+  };
+
+  // Build engine job
+  const engineJob = {
+    job_id: internalJob.jobId,
+    job_type: internalJob.jobType,
+    world_spec: cleanWorldSpec,
+    payload: internalJob.payload || {},
+    execution_params: {
+      priority: "normal",
+      timeout_ms: 300000  // 5 minutes
+    },
+    submitted_at: internalJob.submittedAt || Date.now(),
+    user_id: internalJob.userId || "unknown"
+  };
+
+  return engineJob;
+}
+
 module.exports = {
   convertToEngineSchema,
   convertLLMToEngineSchema,
-  convertCubeToEngineSchema
+  convertCubeToEngineSchema,
+  prepareEngineJob
 };

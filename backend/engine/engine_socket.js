@@ -8,6 +8,8 @@ const {
 } = require("./engine_auth");
 
 const { recordTelemetry } = require("./engine_telemetry");
+const { prepareEngineJob } = require("./engine_adapter");
+const { jobDispatcher, updateJobStatus, findJobById } = require("../jobQueue");
 
 const LOG_PATH = path.join(__dirname, "engine_event_log.json");
 
@@ -36,7 +38,28 @@ function setupEngineSocket(io, jobQueue) {
       engineId: socket.engineId
     });
 
+    jobQueue.setEngineConnected(true);
+
     let lastHeartbeat = Date.now();
+
+    // Listen for jobs from queue
+    const dispatchHandler = ({ job, worldSpec }) => {
+      try {
+        const engineJob = prepareEngineJob(job, worldSpec);
+        socket.emit("engine_job", engineJob);
+        
+        console.log(`[ENGINE] Dispatched job ${job.jobId} (${job.jobType})`);
+        log({ type: "JOB_DISPATCHED_TO_ENGINE", jobId: job.jobId, jobType: job.jobType });
+      } catch (err) {
+        console.error(`[ENGINE] Failed to dispatch job ${job.jobId}: ${err.message}`);
+        updateJobStatus(job.jobId, "failed", { 
+          error: `DISPATCH_FAILED: ${err.message}`,
+          failedAt: Date.now()
+        });
+      }
+    };
+
+    jobDispatcher.on('dispatch_to_engine', dispatchHandler);
 
     // Heartbeat handler
     socket.on("engine_heartbeat", () => {
@@ -92,25 +115,7 @@ function setupEngineSocket(io, jobQueue) {
       socket.emit("ack_received", { jobId, ts: Date.now() });
     });
 
-    // Job progress from engine
-    socket.on("job_progress", (data) => {
-      const { jobId, progress } = data;
-      console.log(`[ENGINE PROGRESS] Job ${jobId}: ${progress}%`);
-      
-      log({
-        type: "JOB_PROGRESS",
-        jobId,
-        progress,
-        engineId: socket.engineId
-      });
 
-      recordTelemetry({
-        event: "JOB_PROGRESS",
-        jobId,
-        engineId: socket.engineId,
-        payload: { progress }
-      });
-    });
 
     // Job status update from engine
     socket.on("job_status", (data) => {
@@ -194,8 +199,87 @@ function setupEngineSocket(io, jobQueue) {
       socket.emit("error_ack", { received: true, ts: Date.now() });
     });
 
+    // Inbound telemetry: job_started
+    socket.on("job_started", (data) => {
+      const { job_id, timestamp } = data;
+      console.log(`[ENGINE TELEMETRY] Job started: ${job_id}`);
+
+      updateJobStatus(job_id, "running", {
+        startedAt: timestamp || Date.now()
+      });
+
+      recordTelemetry({
+        event: "JOB_STARTED",
+        jobId: job_id,
+        engineId: socket.engineId,
+        payload: {}
+      });
+
+      log({ type: "JOB_STARTED", jobId: job_id });
+    });
+
+    // Inbound telemetry: job_progress
+    socket.on("job_progress", (data) => {
+      const { job_id, progress, timestamp } = data;
+      console.log(`[ENGINE TELEMETRY] Job ${job_id}: ${progress}%`);
+
+      recordTelemetry({
+        event: "JOB_PROGRESS",
+        jobId: job_id,
+        engineId: socket.engineId,
+        payload: { progress }
+      });
+
+      log({ type: "JOB_PROGRESS", jobId: job_id, progress });
+    });
+
+    // Inbound telemetry: job_completed
+    socket.on("job_completed", (data) => {
+      const { job_id, result, timestamp } = data;
+      console.log(`[ENGINE TELEMETRY] Job completed: ${job_id}`);
+
+      const job = findJobById(job_id);
+      const startedAt = job?.startedAt || Date.now();
+      const completedAt = timestamp || Date.now();
+
+      updateJobStatus(job_id, "completed", {
+        completedAt,
+        duration: completedAt - startedAt
+      });
+
+      recordTelemetry({
+        event: "JOB_COMPLETED",
+        jobId: job_id,
+        engineId: socket.engineId,
+        payload: result || {}
+      });
+
+      log({ type: "JOB_COMPLETED", jobId: job_id });
+    });
+
+    // Inbound telemetry: job_failed
+    socket.on("job_failed", (data) => {
+      const { job_id, error, details, timestamp } = data;
+      console.error(`[ENGINE TELEMETRY] Job failed: ${job_id} - ${error}`);
+
+      updateJobStatus(job_id, "failed", {
+        error: `${error}: ${details || ''}`,
+        failedAt: timestamp || Date.now()
+      });
+
+      recordTelemetry({
+        event: "JOB_FAILED",
+        jobId: job_id,
+        engineId: socket.engineId,
+        payload: { error, details }
+      });
+
+      log({ type: "JOB_FAILED", jobId: job_id, error });
+    });
+
     socket.on("disconnect", () => {
       clearInterval(heartbeatInterval);
+      jobDispatcher.removeListener('dispatch_to_engine', dispatchHandler);
       console.log("[ENGINE DISCONNECTED]", socket.engineId);
       log({
         type: "ENGINE_DISCONNECTED",

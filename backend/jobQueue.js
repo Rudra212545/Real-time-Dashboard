@@ -1,12 +1,17 @@
 // jobQueue.js - Strict Lifecycle State Machine
 const { recordTelemetry } = require("./engine/engine_telemetry");
+const EventEmitter = require('events');
 
 const queue = [];
 const activeJobs = new Map(); // Track running jobs
+const jobRegistry = new Map(); // jobId -> { job, onStatus, worldSpec }
 let processing = false;
 
 const ENGINE_ID = "engine_local_01";
-let engineConnected = true;
+let engineConnected = false;
+
+// Event emitter for job dispatch
+const jobDispatcher = new EventEmitter();
 
 // Valid state transitions
 const VALID_TRANSITIONS = {
@@ -24,7 +29,7 @@ function validateTransition(currentState, newState) {
   }
 }
 
-function addJob(job, onStatus) {
+function addJob(job, onStatus, worldSpec) {
   console.log("[QUEUE RECEIVED]", job.jobType);
 
   // Initialize job with lifecycle tracking
@@ -32,6 +37,9 @@ function addJob(job, onStatus) {
   job.queuedAt = Date.now();
   job.retryCount = 0;
   job.engineId = ENGINE_ID;
+
+  // Register job
+  jobRegistry.set(job.jobId, { job, onStatus, worldSpec });
 
   queue.push(job);
   onStatus(job, "queued");
@@ -43,14 +51,24 @@ function addJob(job, onStatus) {
     payload: { jobType: job.jobType, userId: job.userId }
   });
 
-  processQueue(onStatus);
+  processQueue();
 }
 
-function processQueue(onStatus) {
+function processQueue() {
   if (processing || queue.length === 0) return;
   processing = true;
 
   const job = queue.shift();
+  const entry = jobRegistry.get(job.jobId);
+  
+  if (!entry) {
+    console.error(`[QUEUE] Job ${job.jobId} not in registry`);
+    processing = false;
+    processQueue();
+    return;
+  }
+
+  const { onStatus, worldSpec } = entry;
   
   // Transition: queued → dispatched
   try {
@@ -65,54 +83,19 @@ function processQueue(onStatus) {
       engineId: ENGINE_ID,
       payload: { jobType: job.jobType }
     });
+
+    // Emit to engine adapter
+    jobDispatcher.emit('dispatch_to_engine', { job, worldSpec });
+
+    // DON'T release lock - wait for engine to finish
+    // processing will be set to false when job completes
+
   } catch (err) {
     console.error(`[JOB TRANSITION ERROR] ${err.message}`);
     failJob(job, onStatus, err.message);
     processing = false;
-    processQueue(onStatus);
-    return;
+    processQueue();
   }
-
-  // Simulate engine processing
-  setTimeout(() => {
-    // Transition: dispatched → running
-    try {
-      validateTransition(job.status, "running");
-      job.status = "running";
-      job.startedAt = Date.now();
-      onStatus(job, "running");
-
-      activeJobs.set(job.jobId, job);
-
-      recordTelemetry({
-        event: "JOB_RUNNING",
-        jobId: job.jobId,
-        engineId: ENGINE_ID,
-        payload: { jobType: job.jobType }
-      });
-    } catch (err) {
-      console.error(`[JOB TRANSITION ERROR] ${err.message}`);
-      failJob(job, onStatus, err.message);
-      processing = false;
-      processQueue(onStatus);
-      return;
-    }
-
-    // Simulate job execution
-    setTimeout(() => {
-      const failureReason = simulateFailure(job);
-
-      if (failureReason) {
-        failJob(job, onStatus, failureReason);
-      } else {
-        completeJob(job, onStatus);
-      }
-
-      activeJobs.delete(job.jobId);
-      processing = false;
-      processQueue(onStatus);
-    }, 3000);
-  }, 500);
 }
 
 function completeJob(job, onStatus) {
@@ -212,19 +195,69 @@ function simulateFailure(job) {
   return null;
 }
 
+function findJobById(jobId) {
+  const entry = jobRegistry.get(jobId);
+  return entry ? entry.job : null;
+}
+
+function updateJobStatus(jobId, status, data = {}) {
+  const entry = jobRegistry.get(jobId);
+  if (!entry) {
+    console.warn(`[QUEUE] Job ${jobId} not found in registry`);
+    return;
+  }
+  
+  const { job, onStatus } = entry;
+  
+  // Validate transition
+  try {
+    validateTransition(job.status, status);
+  } catch (err) {
+    console.error(`[QUEUE] Invalid transition for ${jobId}: ${err.message}`);
+    return;
+  }
+
+  job.status = status;
+  Object.assign(job, data);
+  
+  onStatus(job, status, data.error);
+  
+  // Track active jobs
+  if (status === 'running') {
+    activeJobs.set(jobId, job);
+  } else if (status === 'completed' || status === 'failed') {
+    activeJobs.delete(jobId);
+    
+    // Release queue lock and process next job
+    processing = false;
+    processQueue();
+    
+    // Cleanup registry after 1 minute
+    setTimeout(() => jobRegistry.delete(jobId), 60000);
+  }
+}
+
 function setEngineConnected(connected) {
   engineConnected = connected;
   
   if (!connected) {
     // Fail all active jobs
     activeJobs.forEach((job) => {
-      console.error(`[ENGINE DISCONNECT] Failing job ${job.jobId}`);
-      job.error = "ENGINE_DISCONNECTED";
-      job.status = "failed";
-      job.failedAt = Date.now();
+      const entry = jobRegistry.get(job.jobId);
+      if (entry) {
+        console.error(`[ENGINE DISCONNECT] Failing job ${job.jobId}`);
+        failJob(job, entry.onStatus, "ENGINE_DISCONNECTED");
+      }
     });
     activeJobs.clear();
   }
 }
 
-module.exports = { addJob, getPendingEngineJobs, setEngineConnected };
+module.exports = { 
+  addJob, 
+  getPendingEngineJobs, 
+  setEngineConnected,
+  jobDispatcher,
+  findJobById,
+  updateJobStatus
+};
