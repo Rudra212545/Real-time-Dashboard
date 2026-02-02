@@ -5,6 +5,25 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 export default function useJwtAuth() {
   useEffect(() => {
     async function getToken() {
+      // Check if token already exists and is valid
+      const existingToken = localStorage.getItem("token");
+      if (existingToken) {
+        try {
+          // Decode token to check expiry
+          const payload = JSON.parse(atob(existingToken.split('.')[1]));
+          const expiresAt = payload.exp * 1000;
+          
+          // If token expires in more than 1 day, keep it (static token)
+          if (expiresAt - Date.now() > 24 * 60 * 60 * 1000) {
+            console.log("[AUTH] Using static token");
+            refreshSocketAuth();
+            return;
+          }
+        } catch (err) {
+          console.log("[AUTH] Invalid token, fetching new one");
+        }
+      }
+
       try {
         const isAdmin = sessionStorage.getItem("asAdmin") === "true";
 
