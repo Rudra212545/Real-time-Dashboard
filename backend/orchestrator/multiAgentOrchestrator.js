@@ -1,7 +1,8 @@
 const HintAgent = require("../agents/HintAgent");
 const NavAgent = require("../agents/NavAgent");
 const PredictAgent = require("../agents/PredictAgent");
-const RuleAgent = require("../agents/RuleAgent");
+const RuleAgent = require("../agents/Ruleagent");
+
 
 const { userStates } = require("../state/userStates");
 
