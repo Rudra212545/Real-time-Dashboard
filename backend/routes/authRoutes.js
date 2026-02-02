@@ -46,4 +46,27 @@ router.get("/engine-token", (req, res) => {
   });
 });
 
+router.get("/static-user-token", (req, res) => {
+  const jwt = require('jsonwebtoken');
+  
+  const token = jwt.sign(
+    { 
+      sub: 'user_static_demo',
+      roles: ['user']
+    },
+    process.env.JWT_SECRET,
+    { 
+      expiresIn: '365d',
+      issuer: process.env.JWT_ISSUER || 'microbridge.internal'
+    }
+  );
+  
+  res.json({ 
+    token,
+    userId: 'user_static_demo',
+    expiresIn: '365 days',
+    usage: 'Permanent user token for dashboard access'
+  });
+});
+
 module.exports = router;
