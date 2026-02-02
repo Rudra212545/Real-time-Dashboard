@@ -19,7 +19,11 @@ function attachHeartbeatHandlers(socket) {
 
   socket.on("heartbeat", (data) => {
     updateHeartbeat(socket.userId, socket.id, data?.ts || Date.now());
-    // Optionally: socket.emit("pong", { ts: Date.now() });
+    socket.emit("heartbeat_result", { 
+      userId: socket.userId, 
+      ok: true, 
+      ts: Date.now() 
+    });
   });
 
   socket.on("disconnect", () => {

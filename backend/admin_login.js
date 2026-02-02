@@ -1,4 +1,4 @@
-// amazonq-ignore-next-linesessionStorage.setItem("asAdmin", "true");
+sessionStorage.setItem("asAdmin", "true");
 location.reload();
 
 sessionStorage.removeItem("asAdmin");

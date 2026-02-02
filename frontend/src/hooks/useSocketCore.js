@@ -41,6 +41,13 @@ export default function useSocketCore({
       }));
     });
 
+    socket.on("heartbeat_result", data => {
+      setHeartbeatStatus(p => ({
+        ...p,
+        [data.userId || "unknown"]: { ...data, ts: Date.now() }
+      }));
+    });
+
     socket.on("presence_update", data => setPresenceList({ ...data }));
     socket.on("auth_context", setAuthContext);
 
@@ -58,6 +65,7 @@ export default function useSocketCore({
       socket.removeAllListeners("agent_nonce");
       socket.removeAllListeners("action_error");
       socket.removeAllListeners("agent_heartbeat_result");
+      socket.removeAllListeners("heartbeat_result");
       socket.removeAllListeners("presence_update");
       socket.removeAllListeners("auth_context");
       socket.removeAllListeners("world_update");

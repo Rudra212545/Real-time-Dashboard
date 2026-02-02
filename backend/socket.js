@@ -315,6 +315,7 @@
         io.to(`user:${jobObj.userId}`).emit("job_status", {
           jobId: jobObj.jobId,
           jobType: jobObj.jobType,
+          payload: jobObj.payload,
           status,
           error,
           submittedAt: jobObj.submittedAt,

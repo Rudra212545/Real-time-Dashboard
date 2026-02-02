@@ -707,3 +707,11 @@
 {"seq":4,"ts":1770013002313,"event":"JOB_QUEUED","jobId":"15e0893a-0edd-4b84-93d5-ff540366424e","engineId":"engine_local_01","userId":null,"payload":{"jobType":"SPAWN_ENTITY","userId":"user_e1h0"},"_replay":true}
 {"seq":5,"ts":1770013005439,"event":"JOB_DISPATCHED","jobId":"73cd92a9-9cc3-4ce9-9984-a60bbb40bb53","engineId":"engine_local_01","userId":null,"payload":{"jobType":"LOAD_ASSETS"},"_replay":true}
 {"seq":6,"ts":1770013008734,"event":"JOB_DISPATCHED","jobId":"15e0893a-0edd-4b84-93d5-ff540366424e","engineId":"engine_local_01","userId":null,"payload":{"jobType":"SPAWN_ENTITY"},"_replay":true}
+{"seq":1,"ts":1770021904379,"event":"JOB_QUEUED","jobId":"9095d2cd-c35b-4ea4-adab-7a5ab0f6d13a","engineId":"engine_local_01","userId":null,"payload":{"jobType":"BUILD_SCENE","userId":"user_xpbk"},"_replay":true}
+{"seq":2,"ts":1770021904385,"event":"JOB_DISPATCHED","jobId":"9095d2cd-c35b-4ea4-adab-7a5ab0f6d13a","engineId":"engine_local_01","userId":null,"payload":{"jobType":"BUILD_SCENE"},"_replay":true}
+{"seq":3,"ts":1770021904390,"event":"JOB_QUEUED","jobId":"63956fa8-4d17-4ea7-b49e-61b7c1e3db9a","engineId":"engine_local_01","userId":null,"payload":{"jobType":"LOAD_ASSETS","userId":"user_xpbk"},"_replay":true}
+{"seq":4,"ts":1770021904394,"event":"JOB_QUEUED","jobId":"616c0bf8-2b3c-4f9c-8dca-dde80a9e5a0a","engineId":"engine_local_01","userId":null,"payload":{"jobType":"SPAWN_ENTITY","userId":"user_xpbk"},"_replay":true}
+{"seq":5,"ts":1770021904396,"event":"JOB_QUEUED","jobId":"1f7c367d-dab5-4c6e-817d-92cb81d66fdb","engineId":"engine_local_01","userId":null,"payload":{"jobType":"SPAWN_ENTITY","userId":"user_xpbk"},"_replay":true}
+{"seq":6,"ts":1770021907538,"event":"JOB_DISPATCHED","jobId":"63956fa8-4d17-4ea7-b49e-61b7c1e3db9a","engineId":"engine_local_01","userId":null,"payload":{"jobType":"LOAD_ASSETS"},"_replay":true}
+{"seq":7,"ts":1770021910605,"event":"JOB_DISPATCHED","jobId":"616c0bf8-2b3c-4f9c-8dca-dde80a9e5a0a","engineId":"engine_local_01","userId":null,"payload":{"jobType":"SPAWN_ENTITY"},"_replay":true}
+{"seq":8,"ts":1770021913626,"event":"JOB_DISPATCHED","jobId":"1f7c367d-dab5-4c6e-817d-92cb81d66fdb","engineId":"engine_local_01","userId":null,"payload":{"jobType":"SPAWN_ENTITY"},"_replay":true}
