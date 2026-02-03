@@ -8,10 +8,12 @@ export default function DemoModePanel() {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ stage: "", percent: 0 });
   const [selectedWorld, setSelectedWorld] = useState("");
+  const [currentJobIds, setCurrentJobIds] = useState(new Set());
 
   useEffect(() => {
     const handleJobStatus = (job) => {
-      if (!running) return;
+      // Only track jobs from current demo run
+      if (!running || !currentJobIds.has(job.id)) return;
       
       if (job.status === "queued") {
         setProgress({ stage: "Queuing jobs...", percent: 25 });
@@ -24,6 +26,7 @@ export default function DemoModePanel() {
       } else if (job.status === "failed") {
         setProgress({ stage: "Failed", percent: 0 });
         setRunning(false);
+        setCurrentJobIds(new Set());
       }
     };
 
@@ -32,6 +35,7 @@ export default function DemoModePanel() {
       setTimeout(() => {
         setRunning(false);
         setProgress({ stage: "", percent: 0 });
+        setCurrentJobIds(new Set());
       }, 1500);
     };
 
@@ -42,11 +46,12 @@ export default function DemoModePanel() {
       socket.off("job_status", handleJobStatus);
       socket.off("world_update", handleWorldUpdate);
     };
-  }, [running]);
+  }, [running, currentJobIds]);
 
   const runDemo = () => {
     if (running) return;
     setRunning(true);
+    setCurrentJobIds(new Set());
     const world = WORLDS[Math.floor(Math.random() * WORLDS.length)];
     setSelectedWorld(world);
     setProgress({ stage: "Generating world...", percent: 10 });
@@ -54,6 +59,11 @@ export default function DemoModePanel() {
     socket.emit("generate_world", {
       config: SAMPLE_WORLDS[world],
       submittedAt: Date.now(),
+    }, (response) => {
+      // Track job IDs from this demo run
+      if (response?.jobIds) {
+        setCurrentJobIds(new Set(response.jobIds));
+      }
     });
   };
 

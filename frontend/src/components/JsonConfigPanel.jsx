@@ -7,6 +7,7 @@ export default function JsonConfigPanel({ onConfigChange, previewConfig }) {
     '{"color": "#66ffdd", "size": 1}'
   );
   const [error, setError] = useState(null);
+  const [generating, setGenerating] = useState(false);
 
   const handlePreview = () => {
     try {
@@ -59,15 +60,22 @@ export default function JsonConfigPanel({ onConfigChange, previewConfig }) {
   };
 
   const handleGenerate = () => {
+    if (generating) return;
+    
     try {
       const parsed = JSON.parse(jsonText);
       setError(null);
+      setGenerating(true);
+      
       socket.emit("generate_world", {
         config: parsed,
         submittedAt: Date.now(),
       });
+      
+      setTimeout(() => setGenerating(false), 2000);
     } catch (e) {
       setError("Invalid JSON: " + e.message);
+      setGenerating(false);
     }
   };
 
@@ -142,6 +150,7 @@ export default function JsonConfigPanel({ onConfigChange, previewConfig }) {
       {/* Generate */}
       <button
         onClick={handleGenerate}
+        disabled={generating}
         className="
           w-full mt-1 rounded-2xl px-4 py-2.5 text-sm font-semibold
           bg-gradient-to-r from-violet-500 to-indigo-500
@@ -151,10 +160,11 @@ export default function JsonConfigPanel({ onConfigChange, previewConfig }) {
           hover:scale-[1.02] hover:-translate-y-0.5
           transition-all duration-300
           flex items-center justify-center gap-2
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:translate-y-0
         "
       >
-        <span>🚀</span>
-        <span>Generate World</span>
+        <span>{generating ? '⏳' : '🚀'}</span>
+        <span>{generating ? 'Generating...' : 'Generate World'}</span>
       </button>
 
       {/* Error */}
