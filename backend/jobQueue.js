@@ -206,6 +206,8 @@ function updateJobStatus(jobId, status, data = {}) {
       if (entry && entry.job.status === 'running') {
         console.error(`[TIMEOUT] Job ${timeoutJobId} timed out`);
         
+        clearJobTimeout(timeoutJobId);
+        
         if (entry.job.retryCount < MAX_RETRIES) {
           entry.job.retryCount++;
           entry.job.status = 'queued';
@@ -290,6 +292,34 @@ function clearAllJobs() {
   processing = false;
   console.log('[QUEUE] All jobs cleared');
 }
+
+function clearStaleJobs() {
+  const now = Date.now();
+  const staleThreshold = 2 * 60 * 1000; // 2 minutes
+  
+  let cleared = 0;
+  jobRegistry.forEach((entry, jobId) => {
+    const { job } = entry;
+    if (job.status !== 'completed' && job.status !== 'failed') {
+      if (now - job.queuedAt > staleThreshold) {
+        console.log(`[CLEANUP] Removing stale job ${jobId} (${job.status})`);
+        jobRegistry.delete(jobId);
+        const queueIndex = queue.indexOf(job);
+        if (queueIndex > -1) queue.splice(queueIndex, 1);
+        activeJobs.delete(jobId);
+        clearJobTimeout(jobId);
+        cleared++;
+      }
+    }
+  });
+  
+  if (cleared > 0) {
+    console.log(`[CLEANUP] Cleared ${cleared} stale jobs`);
+  }
+}
+
+// Auto-cleanup stale jobs every minute
+setInterval(clearStaleJobs, 60000);
 
 module.exports = { 
   addJob, 
