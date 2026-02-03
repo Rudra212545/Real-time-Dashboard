@@ -9,6 +9,10 @@ require("dotenv").config();
 const { setupEngineSocket } = require("./engine/engine_socket");
 const jobQueue = require("./jobQueue");
 
+// Clear job queue on startup
+jobQueue.clearAllJobs();
+console.log("[STARTUP] Job queue cleared");
+
 
 const app = express();
 const server = createServer(app);

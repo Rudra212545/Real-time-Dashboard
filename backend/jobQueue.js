@@ -276,11 +276,19 @@ function setEngineConnected(connected) {
     
     console.log(`[QUEUE] Engine connected - ${queue.length} jobs ready to process`);
     
-    if (activeJobs.size === 0) {
+    if (activeJobs.size === 0 && queue.length > 0) {
       processing = false;
       processQueue();
     }
   }
+}
+
+function clearAllJobs() {
+  queue.length = 0;
+  activeJobs.clear();
+  jobRegistry.clear();
+  processing = false;
+  console.log('[QUEUE] All jobs cleared');
 }
 
 module.exports = { 
@@ -289,5 +297,6 @@ module.exports = {
   setEngineConnected,
   jobDispatcher,
   findJobById,
-  updateJobStatus
+  updateJobStatus,
+  clearAllJobs
 };
