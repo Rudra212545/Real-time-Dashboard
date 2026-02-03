@@ -16,16 +16,19 @@ const token = jwt.sign(
   process.env.JWT_SECRET,
   { 
     expiresIn: '1h', 
-    issuer: 'sovereign-core' 
+    issuer: 'microbridge.internal' 
   }
 );
 
 console.log('[MOCK ENGINE] JWT generated');
 
 // Connect to engine namespace
-const socket = io('http://localhost:3000/engine', {
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+const socket = io(BACKEND_URL + '/engine', {
   auth: { token }
 });
+
+console.log('[MOCK ENGINE] Connecting to:', BACKEND_URL + '/engine');
 
 socket.on('connect', () => {
   console.log('[MOCK ENGINE] ✅ Connected to backend');

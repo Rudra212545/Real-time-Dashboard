@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import socket from "../socket/socket";
 
-export default function useJobQueue(setJobHistory) {
+export default function useJobQueue(setJobHistory, setEngineStatus, setLastTelemetry) {
   useEffect(() => {
     function onJobStatus(job) {
       setJobHistory(prev => {
@@ -15,16 +15,22 @@ export default function useJobQueue(setJobHistory) {
       });
     }
 
-    function onCubeUpdate(config) {
-      // Cube update from job completion
+    function onEngineStatus(status) {
+      if (setEngineStatus) setEngineStatus(status);
+    }
+
+    function onEngineTelemetry(telemetry) {
+      if (setLastTelemetry) setLastTelemetry(telemetry);
     }
 
     socket.on("job_status", onJobStatus);
-    socket.on("cube_update", onCubeUpdate);
+    socket.on("engine_status", onEngineStatus);
+    socket.on("engine_telemetry", onEngineTelemetry);
     
     return () => {
       socket.off("job_status", onJobStatus);
-      socket.off("cube_update", onCubeUpdate);
+      socket.off("engine_status", onEngineStatus);
+      socket.off("engine_telemetry", onEngineTelemetry);
     };
-  }, [setJobHistory]);
+  }, [setJobHistory, setEngineStatus, setLastTelemetry]);
 }

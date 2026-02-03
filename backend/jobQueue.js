@@ -1,23 +1,24 @@
 // jobQueue.js - Strict Lifecycle State Machine
 const { recordTelemetry } = require("./engine/engine_telemetry");
 const EventEmitter = require('events');
+const { startJobTimeout, clearJobTimeout } = require('./engine/job_timeout');
+
+const MAX_RETRIES = 2;
 
 const queue = [];
-const activeJobs = new Map(); // Track running jobs
-const jobRegistry = new Map(); // jobId -> { job, onStatus, worldSpec }
+const activeJobs = new Map();
+const jobRegistry = new Map();
 let processing = false;
 
 const ENGINE_ID = "engine_local_01";
 let engineConnected = false;
 
-// Event emitter for job dispatch
 const jobDispatcher = new EventEmitter();
 
-// Valid state transitions
 const VALID_TRANSITIONS = {
   queued: ["dispatched", "failed"],
-  dispatched: ["running", "failed"],
-  running: ["completed", "failed"],
+  dispatched: ["running", "failed", "queued"],
+  running: ["completed", "failed", "queued"],
   completed: [],
   failed: []
 };
@@ -32,13 +33,11 @@ function validateTransition(currentState, newState) {
 function addJob(job, onStatus, worldSpec) {
   console.log("[QUEUE RECEIVED]", job.jobType);
 
-  // Initialize job with lifecycle tracking
   job.status = "queued";
   job.queuedAt = Date.now();
   job.retryCount = 0;
   job.engineId = ENGINE_ID;
 
-  // Register job
   jobRegistry.set(job.jobId, { job, onStatus, worldSpec });
 
   queue.push(job);
@@ -70,7 +69,6 @@ function processQueue() {
 
   const { onStatus, worldSpec } = entry;
   
-  // Transition: queued → dispatched
   try {
     validateTransition(job.status, "dispatched");
     job.status = "dispatched";
@@ -84,25 +82,14 @@ function processQueue() {
       payload: { jobType: job.jobType }
     });
 
-    // Emit to engine adapter
     jobDispatcher.emit('dispatch_to_engine', { job, worldSpec });
 
-    // If no engine connected, auto-complete after delay
-    if (!engineConnected) {
-      console.log(`[QUEUE] No engine - simulating completion for ${job.jobId}`);
-      setTimeout(() => {
+    setTimeout(() => {
+      const currentJob = findJobById(job.jobId);
+      if (currentJob && currentJob.status === 'dispatched') {
         updateJobStatus(job.jobId, 'running', { startedAt: Date.now() });
-        setTimeout(() => {
-          updateJobStatus(job.jobId, 'completed', { 
-            completedAt: Date.now(),
-            duration: 2000 
-          });
-        }, 2000);
-      }, 1000);
-    }
-
-    // DON'T release lock - wait for engine to finish
-    // processing will be set to false when job completes
+      }
+    }, 1000);
 
   } catch (err) {
     console.error(`[JOB TRANSITION ERROR] ${err.message}`);
@@ -121,7 +108,6 @@ function completeJob(job, onStatus) {
 
     onStatus(job, "completed");
 
-    // Job-specific telemetry
     if (job.jobType === "BUILD_SCENE") {
       recordTelemetry({
         event: "SCENE_LOADED",
@@ -161,7 +147,6 @@ function failJob(job, onStatus, error) {
   try {
     validateTransition(job.status, "failed");
   } catch (err) {
-    // Already in terminal state, log but don't fail again
     console.error(`[JOB ALREADY TERMINAL] ${job.jobId} in ${job.status}`);
     return;
   }
@@ -187,28 +172,6 @@ function getPendingEngineJobs() {
   return [...queue, ...Array.from(activeJobs.values())];
 }
 
-function simulateFailure(job) {
-  if (!engineConnected) return "ENGINE_DISCONNECTED";
-
-  if (job.jobType === "LOAD_ASSETS") {
-    const assets = job.payload?.assets || [];
-    const badAsset = assets.find(a => a.includes("corrupted") || a.includes("missing"));
-    if (badAsset) return `BAD_ASSET: ${badAsset}`;
-  }
-
-  if (job.jobType === "SPAWN_ENTITY") {
-    const entityId = job.payload?.id;
-    if (entityId && entityId.includes("invalid")) return `INVALID_ENTITY: ${entityId}`;
-    if (!job.payload?.transform) return "INVALID_ENTITY: missing transform";
-  }
-
-  if (job.jobType === "BUILD_SCENE") {
-    if (!job.payload?.sceneId) return "INVALID_SCENE: missing sceneId";
-  }
-
-  return null;
-}
-
 function findJobById(jobId) {
   const entry = jobRegistry.get(jobId);
   return entry ? entry.job : null;
@@ -223,7 +186,6 @@ function updateJobStatus(jobId, status, data = {}) {
   
   const { job, onStatus } = entry;
   
-  // Validate transition
   try {
     validateTransition(job.status, status);
   } catch (err) {
@@ -236,18 +198,41 @@ function updateJobStatus(jobId, status, data = {}) {
   
   onStatus(job, status, data.error);
   
-  // Track active jobs
   if (status === 'running') {
     activeJobs.set(jobId, job);
+    
+    startJobTimeout(jobId, (timeoutJobId) => {
+      const entry = jobRegistry.get(timeoutJobId);
+      if (entry && entry.job.status === 'running') {
+        console.error(`[TIMEOUT] Job ${timeoutJobId} timed out`);
+        
+        if (entry.job.retryCount < MAX_RETRIES) {
+          entry.job.retryCount++;
+          entry.job.status = 'queued';
+          queue.unshift(entry.job);
+          console.log(`[RETRY] Job ${timeoutJobId} retry ${entry.job.retryCount}/${MAX_RETRIES}`);
+          activeJobs.delete(timeoutJobId);
+          processing = false;
+          processQueue();
+        } else {
+          failJob(entry.job, entry.onStatus, `TIMEOUT after ${MAX_RETRIES} retries`);
+          activeJobs.delete(timeoutJobId);
+          processing = false;
+          processQueue();
+        }
+      }
+    });
   } else if (status === 'completed' || status === 'failed') {
+    clearJobTimeout(jobId);
     activeJobs.delete(jobId);
     
-    // Release queue lock and process next job
     processing = false;
     processQueue();
     
-    // Cleanup registry after 1 minute
     setTimeout(() => jobRegistry.delete(jobId), 60000);
+  } else if (status === 'queued') {
+    clearJobTimeout(jobId);
+    activeJobs.delete(jobId);
   }
 }
 
@@ -255,7 +240,6 @@ function setEngineConnected(connected) {
   engineConnected = connected;
   
   if (!connected) {
-    // Fail all active jobs
     activeJobs.forEach((job) => {
       const entry = jobRegistry.get(job.jobId);
       if (entry) {
@@ -264,6 +248,38 @@ function setEngineConnected(connected) {
       }
     });
     activeJobs.clear();
+    processing = false;
+  } else {
+    queue.length = 0;
+    
+    const requeuedJobs = [];
+    jobRegistry.forEach((entry, jobId) => {
+      const { job, onStatus } = entry;
+      
+      if (job.status === 'dispatched' || job.status === 'queued') {
+        console.log(`[QUEUE] Re-queuing job ${jobId} (was ${job.status})`);
+        
+        if (job.status === 'dispatched') {
+          try {
+            validateTransition(job.status, 'queued');
+            job.status = 'queued';
+            onStatus(job, 'queued');
+          } catch (err) {
+            console.error(`[QUEUE] Failed to re-queue ${jobId}: ${err.message}`);
+          }
+        }
+        requeuedJobs.push(job);
+      }
+    });
+    
+    requeuedJobs.forEach(job => queue.push(job));
+    
+    console.log(`[QUEUE] Engine connected - ${queue.length} jobs ready to process`);
+    
+    if (activeJobs.size === 0) {
+      processing = false;
+      processQueue();
+    }
   }
 }
 

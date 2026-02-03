@@ -10,6 +10,7 @@ const {
 const { recordTelemetry } = require("./engine_telemetry");
 const { prepareEngineJob } = require("./engine_adapter");
 const { jobDispatcher, updateJobStatus, findJobById } = require("../jobQueue");
+const { engineMonitor } = require("./engine_monitor");
 
 const LOG_PATH = path.join(__dirname, "engine_event_log.json");
 
@@ -22,6 +23,15 @@ function log(event) {
 
 function setupEngineSocket(io, jobQueue) {
   const engineNS = io.of("/engine");
+
+  // Broadcast engine status to all clients
+  engineMonitor.on('status_change', (status) => {
+    io.emit('engine_status', status);
+  });
+
+  engineMonitor.on('telemetry', (telemetry) => {
+    io.emit('engine_telemetry', telemetry);
+  });
 
   engineNS.on("connection", (socket) => {
     try {
@@ -39,6 +49,7 @@ function setupEngineSocket(io, jobQueue) {
     });
 
     jobQueue.setEngineConnected(true);
+    engineMonitor.setConnected(true);
 
     let lastHeartbeat = Date.now();
 
@@ -64,6 +75,7 @@ function setupEngineSocket(io, jobQueue) {
     // Heartbeat handler
     socket.on("engine_heartbeat", () => {
       lastHeartbeat = Date.now();
+      engineMonitor.recordHeartbeat();
       socket.emit("heartbeat_ack", { ts: Date.now() });
       log({ type: "ENGINE_HEARTBEAT", engineId: socket.engineId });
     });
@@ -81,7 +93,7 @@ function setupEngineSocket(io, jobQueue) {
       }
     }, 5000);
 
-    // Engine ready - send pending jobs
+    // Engine ready
     socket.on("engine_ready", () => {
       console.log("[ENGINE READY]", socket.engineId);
       log({ type: "ENGINE_READY", engineId: socket.engineId });
@@ -89,14 +101,6 @@ function setupEngineSocket(io, jobQueue) {
       socket.emit("ready_ack", { 
         status: "acknowledged",
         ts: Date.now() 
-      });
-
-      const jobs = jobQueue.getPendingEngineJobs();
-      console.log(`[ENGINE] Sending ${jobs.length} pending jobs`);
-
-      jobs.forEach(job => {
-        socket.emit("engine_job", job);
-        log({ type: "JOB_DISPATCHED_TO_ENGINE", jobId: job.jobId });
       });
     });
 
@@ -201,6 +205,11 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_started
     socket.on("job_started", (data) => {
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_STARTED', ...data })) {
+        console.warn('[ENGINE] Malformed job_started telemetry');
+        return;
+      }
+
       const { job_id, timestamp } = data;
       console.log(`[ENGINE TELEMETRY] Job started: ${job_id}`);
 
@@ -220,6 +229,11 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_progress
     socket.on("job_progress", (data) => {
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_PROGRESS', ...data })) {
+        console.warn('[ENGINE] Malformed job_progress telemetry');
+        return;
+      }
+
       const { job_id, progress, timestamp } = data;
       console.log(`[ENGINE TELEMETRY] Job ${job_id}: ${progress}%`);
 
@@ -235,6 +249,11 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_completed
     socket.on("job_completed", (data) => {
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_COMPLETED', ...data })) {
+        console.warn('[ENGINE] Malformed job_completed telemetry');
+        return;
+      }
+
       const { job_id, result, timestamp } = data;
       console.log(`[ENGINE TELEMETRY] Job completed: ${job_id}`);
 
@@ -259,6 +278,11 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_failed
     socket.on("job_failed", (data) => {
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_FAILED', ...data })) {
+        console.warn('[ENGINE] Malformed job_failed telemetry');
+        return;
+      }
+
       const { job_id, error, details, timestamp } = data;
       console.error(`[ENGINE TELEMETRY] Job failed: ${job_id} - ${error}`);
 
@@ -287,6 +311,7 @@ function setupEngineSocket(io, jobQueue) {
         engineId: socket.engineId
       });
       jobQueue.setEngineConnected(false);
+      engineMonitor.handleDisconnect();
     });
   });
 

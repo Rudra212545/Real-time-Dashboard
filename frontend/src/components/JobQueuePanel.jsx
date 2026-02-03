@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import socket from "../socket/socket";
 
-export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
+export default function JobQueuePanel({ jobHistory = [], setJobHistory, engineStatus, lastTelemetry }) {
   const [agentMessage, setAgentMessage] = useState(null);
+  const isEngineHealthy = engineStatus?.connected && engineStatus?.healthy;
 
   return (
     <div
@@ -15,68 +16,58 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
         "p-6 flex flex-col h-full",
       ].join(" ")}
     >
-      {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
         <div className="absolute -top-32 -right-16 h-56 w-56 rounded-full bg-sky-500/30 blur-3xl" />
         <div className="absolute -bottom-40 -left-10 h-60 w-60 rounded-full bg-indigo-500/25 blur-3xl" />
       </div>
 
-      {/* Header */}
-      <div className="relative flex items-center justify-between mb-4 pb-3 border-b border-slate-200/60 dark:border-white/10">
-        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
-          World Build Jobs
-        </h2>
-
-        <span
-          className="
-            px-3 py-1 text-xs font-semibold rounded-full border backdrop-blur-sm
-            flex items-center gap-1
-            bg-black/5 dark:bg-white/5
-            text-slate-900 dark:text-slate-100
-            border-indigo-400/40
-          "
-        >
-          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-          {jobHistory.length} jobs
-        </span>
+      <div className="relative mb-4 pb-3 border-b border-slate-200/60 dark:border-white/10">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+            World Build Jobs
+          </h2>
+          <span className="px-3 py-1 text-xs font-semibold rounded-full border backdrop-blur-sm flex items-center gap-1.5 bg-black/5 dark:bg-white/5 text-slate-900 dark:text-slate-100 border-indigo-400/40">
+            {jobHistory.length} jobs
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-3 text-xs">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isEngineHealthy ? 'bg-emerald-50/80 dark:bg-emerald-950/50' : 'bg-red-50/80 dark:bg-red-950/50'}`}>
+            <span className={`inline-flex h-1.5 w-1.5 rounded-full ${isEngineHealthy ? 'bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)]'}`} />
+            <span className={`font-medium ${isEngineHealthy ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
+              {isEngineHealthy ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          
+          {lastTelemetry && (
+            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+              <span>•</span>
+              <span className="font-mono text-[10px]">{new Date(lastTelemetry.timestamp).toLocaleTimeString()}</span>
+              <span className="text-[10px] text-sky-600 dark:text-sky-400">({lastTelemetry.event})</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Empty state */}
       {jobHistory.length === 0 && (
         <div className="relative flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center justify-center text-center">
-            <div
-              className="
-                w-12 h-12 rounded-2xl border border-dashed
-                border-slate-300/70 dark:border-slate-600/70
-                flex items-center justify-center mb-3
-                bg-black/5 dark:bg-white/5
-                backdrop-blur-lg shadow-inner
-                shadow-slate-200/40 dark:shadow-slate-900/60
-              "
-            >
+            <div className="w-12 h-12 rounded-2xl border border-dashed border-slate-300/70 dark:border-slate-600/70 flex items-center justify-center mb-3 bg-black/5 dark:bg-white/5 backdrop-blur-lg shadow-inner shadow-slate-200/40 dark:shadow-slate-900/60">
               <span className="text-xl">📦</span>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              No jobs yet.
-            </p>
-            <p className="text-[11px] mt-1 text-slate-400">
-              Trigger a world build to populate this queue.
-            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No jobs yet.</p>
+            <p className="text-[11px] mt-1 text-slate-400">Trigger a world build to populate this queue.</p>
           </div>
         </div>
       )}
 
-      {/* Job list */}
       {jobHistory.length > 0 && (
         <ul
           className={[
             "relative flex-1 overflow-y-auto rounded-2xl p-3 space-y-1.5",
             "bg-white/70 dark:bg-slate-950/80",
             "border border-slate-200/70 dark:border-slate-800/70",
-            "backdrop-blur-xl",
-            "max-h-[700px]",
-            // Custom scrollbar
+            "backdrop-blur-xl max-h-[700px]",
             "scrollbar-thin scrollbar-thumb-indigo-500/50 scrollbar-track-slate-200/30",
             "dark:scrollbar-thumb-indigo-400/50 dark:scrollbar-track-slate-800/30",
             "hover:scrollbar-thumb-indigo-600/70 dark:hover:scrollbar-thumb-indigo-300/70",
@@ -87,7 +78,6 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
           }}
         >
           {jobHistory.map((job) => {
-            // Status-based colors
             const statusConfig = {
               completed: {
                 text: "text-emerald-600 dark:text-emerald-300",
@@ -152,13 +142,11 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
                   config.shadow,
                 ].join(" ")}
               >
-                {/* Accent */}
                 <div className={[
                   "absolute inset-y-0 left-0 w-[3px] rounded-l-2xl opacity-80",
                   config.accent
                 ].join(" ")} />
 
-                {/* Hover glow */}
                 <div className={[
                   "pointer-events-none absolute inset-x-0 top-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300",
                   config.glow
@@ -184,6 +172,12 @@ export default function JobQueuePanel({ jobHistory = [], setJobHistory }) {
                         {job.jobType}
                       </span>
                     </div>
+
+                    {job.retryCount > 0 && job.status !== 'completed' && (
+                      <div className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Retry {job.retryCount}
+                      </div>
+                    )}
 
                     {job.error && (
                       <div className="flex items-start gap-1.5 mt-0.5 p-2 rounded-lg bg-red-100/80 dark:bg-red-950/60 border border-red-300/50 dark:border-red-800/50">

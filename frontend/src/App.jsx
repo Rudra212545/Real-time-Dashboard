@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 import "./index.css";
 
-// panels
 import ActionsPanel from "./components/ActionsPanel";
 import ActionLogPanel from "./components/ActionLogPanel";
 import PresencePanel from "./components/PresencePanel";
@@ -15,10 +14,8 @@ import SecurityPanel from "./components/SecurityPanel";
 import UserPreferencePanel from "./components/UserPreferencePanel";
 import DemoModePanel from "./components/DemoModePanel";
 
-// state
 import { agentsReducer, initialAgentsState } from "./state/agentsReducer";
 
-// hooks
 import useJwtAuth from "./hooks/useJwtAuth";
 import useIdlePresence from "./hooks/useIdlePresence";
 import useHeartbeat from "./hooks/useHeartbeat";
@@ -33,6 +30,8 @@ function App() {
   const [actionLog, setActionLog] = useState([]);
   const [jobHistory, setJobHistory] = useState([]);
   const [agentEvents, setAgentEvents] = useState([]);
+  const [engineStatus, setEngineStatus] = useState(null);
+  const [lastTelemetry, setLastTelemetry] = useState(null);
 
   const [agentNonces, setAgentNonces] = useState({});
   const [signatureLog, setSignatureLog] = useState([]);
@@ -67,7 +66,7 @@ function App() {
   useJwtAuth();
   useIdlePresence(status, setStatus);
   useHeartbeat();
-  useJobQueue(setJobHistory);
+  useJobQueue(setJobHistory, setEngineStatus, setLastTelemetry);
 
   useSocketCore({
     setActionLog,
@@ -80,7 +79,6 @@ function App() {
     setHeartbeatStatus,
     setAuthContext,
     setCubeConfig: (engineSchema) => {
-      // Handle both legacy and engine schema
       if (engineSchema.entities) {
         setCubeConfig(engineSchema);
       } else {
@@ -91,14 +89,12 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      {/* Global gradient / glow background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -left-20 h-80 w-80 rounded-full bg-sky-500/25 blur-3xl" />
         <div className="absolute -top-20 right-0 h-96 w-96 rounded-full bg-violet-500/25 blur-3xl" />
         <div className="absolute bottom-[-6rem] left-1/3 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
       </div>
 
-      {/* App shell */}
       <div
         className={[
           "app-root relative mx-auto max-w-[1400px]",
@@ -107,7 +103,6 @@ function App() {
           "transition-all duration-300",
         ].join(" ")}
       >
-        {/* Header */}
         <div
           className={[
             "relative z-10 mb-8",
@@ -147,7 +142,6 @@ function App() {
           </button>
         </div>
 
-        {/* Grid */}
         <div
           className="
             relative z-10
@@ -170,6 +164,8 @@ function App() {
           <JobQueuePanel
             jobHistory={jobHistory}
             setJobHistory={setJobHistory}
+            engineStatus={engineStatus}
+            lastTelemetry={lastTelemetry}
           />
 
           <ActionsPanel compactMode={false} soundEnabled={true} />

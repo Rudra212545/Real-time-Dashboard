@@ -2,7 +2,6 @@
   const socketAuth = require("./auth/socketAuth");
   const { registerBusSubscribers } = require("./busSubscribers");
 
-
   const orchestrator = require("./orchestrator/multiAgentOrchestrator");
   const { userStates } = require("./state/userStates");
 
@@ -18,7 +17,7 @@
   const {buildSessionSummary} = require("./telemetry/sessionSummary");
   const { convertToEngineSchema } = require("./engine/engine_adapter");
   const validateWorldSpec = require("./engine/world_spec_validator");
-  // const {buildEngineJobs} = require("./engine/engine_job_queue");
+  const { engineMonitor } = require("./engine/engine_monitor");
 
   function initSocket(server) {
 
@@ -30,10 +29,6 @@
 
     io.use(socketAuth);
 
-
-  
-
-    //  EventBus subscribers MUST be registered ONCE here
     registerBusSubscribers(io, orchestrator, userStates);
 
     startHeartbeatMonitor({
@@ -96,8 +91,6 @@
       const sessionId = `${userId}:${Date.now()}`;
       socket.sessionId = sessionId;
       socket.sessionStart = Date.now();
-
-      
     
       if (!userId) {
         console.warn("Unauthenticated socket, disconnecting:", socket.id);
@@ -112,26 +105,27 @@
           ? "mobile"
           : "desktop";
     
+      socket.emit("auth_context", {
+        userId: socket.userId,
+        role: socket.role,
+        isSimulated: !!socket.isSimulated
+      });
+
+      // Send initial engine status
+      const currentEngineStatus = engineMonitor.getStatus();
+      socket.emit("engine_status", currentEngineStatus);
+      if (currentEngineStatus.lastTelemetry) {
+        socket.emit("engine_telemetry", currentEngineStatus.lastTelemetry);
+      }
     
-    
-          socket.emit("auth_context", {
-            userId: socket.userId,
-            role: socket.role,
-            isSimulated: !!socket.isSimulated
-          });
-    
-    
-      // assign each connection to user room
       socket.join(`user:${userId}`);
     
-      // nonces per agent
       const agentNonces = {};
       for (const agentId of Object.keys(AGENTS)) {
         agentNonces[agentId] = rotateNonce(agentId);
       }
       socket.emit("agent_nonce", agentNonces);
     
-      // secure agent heartbeat
       socket.on("agent_heartbeat", (hb) => {
         const result = processHeartbeat(hb);
         if (!result.ok) {
@@ -142,7 +136,6 @@
         socket.emit("agent_heartbeat_result", { ok: true });
       });
     
-      // initialize presence
       presence[userId] = {
         userId,
         role: socket.role,
@@ -152,21 +145,16 @@
         connectedAt: Date.now(),
         lastActiveAt: Date.now()
       };
-      
     
       emitPresenceScoped();
     
-    
-      // ensure user state exists
       ensureUserState(userId);
       userStates[userId].lastActionAt = Date.now();
       scheduleIdleCheck(userId);
     
-      //  PRESENCE HANDLER 
       socket.on("presence", (state) => {
         if (!socket.userId) return;
       
-        //  SAFETY CHECK 
         if (!presence[userId]) {
           console.warn(`[PRESENCE] Missing presence entry for ${userId}`);
           return;
@@ -197,7 +185,6 @@
         scheduleIdleCheck(userId);
       });
       
-      // ACTIONS HANDLER
       socket.on("action", (actionData) => {
         if (!socket.userId) return;
     
@@ -217,7 +204,6 @@
           return socket.emit("action_error", { error: "replay_detected" });
         }
     
-        // trusted action
         const action = {
           userId: socket.userId,
           sessionId: socket.sessionId,
@@ -247,7 +233,6 @@
           emitPresenceScoped();
         }
         
-        // Record behaviour
         recordBehaviour({
           sessionId: socket.sessionId,
           userId: socket.userId,
@@ -260,7 +245,6 @@
           },
           ts: Date.now()
         });
-
     
         eventBus.publish(action);
       });
@@ -291,14 +275,6 @@
       console.error("[SCHEMA CONVERSION/VALIDATION FAILED]", err.message);
       return socket.emit("job_error", { error: "schema_validation_failed", message: err.message });
     }
-    
-    // let engineJobs;
-    // try {
-    //   engineJobs = buildEngineJobs(engineSchema);
-    // } catch (err) {
-    //   console.error("[BUILD ENGINE JOBS FAILED]", err.message);
-    //   return socket.emit("job_error", { error: "job_build_failed", message: err.message });
-    // }
 
     const jobBatchId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
     let completedJobs = 0;
@@ -309,7 +285,6 @@
         ...engineJob,
         userId: socket.userId
       };
-      
 
       addJob(job, (jobObj, status, error) => {
         io.to(`user:${jobObj.userId}`).emit("job_status", {
@@ -324,7 +299,8 @@
           dispatchedAt: jobObj.dispatchedAt,
           startedAt: jobObj.startedAt,
           completedAt: jobObj.completedAt,
-          duration: jobObj.duration
+          duration: jobObj.duration,
+          retryCount: jobObj.retryCount || 0
         });
 
         if (status === "completed") {
@@ -336,11 +312,9 @@
             finishedAt: Date.now()
           });
 
-          // Update preview only after ALL jobs complete
           if (completedJobs === totalJobs) {
             io.to(`user:${jobObj.userId}`).emit("world_update", engineSchema);
           }
-          
 
           orchestrator.evaluate({
             type: "build_finished",
@@ -357,7 +331,7 @@
             failedAt: Date.now()
           });
         }
-      }, engineSchema);  // Pass worldSpec as third argument
+      }, engineSchema);
     });
   });
 
