@@ -135,3 +135,86 @@ Sovereign Phase III security checks for Day 6.
 
 The system is secure, auditable, and ready for multi-user
 stress testing in Day 7.
+
+---
+
+##  Engine Security & Boundary Validation
+
+### Engine Message Authentication
+
+All engine-to-bridge messages are cryptographically authenticated:
+
+- **JWT Authentication**: Engine connection requires valid JWT with `role: "engine"`
+- **HMAC Signatures**: Every engine message includes HMAC-SHA256 signature
+- **Nonce Protection**: Per-message nonce prevents replay attacks
+- **Timestamp Validation**: ±30 second drift window enforced
+
+**Protected Message Types:**
+- `job_status` — Job state updates
+- `job_started` — Telemetry: job execution start
+- `job_progress` — Telemetry: job progress updates
+- `job_completed` — Telemetry: job completion
+- `job_failed` — Telemetry: job failure
+- `job_ack` — Job acknowledgement
+- `engine_error` — Error reporting
+
+**Enforcement Point:**
+- `backend/engine/engine_socket.js` (all inbound handlers)
+
+**Failure Behavior:**
+- Message rejected
+- Logged as security violation
+- Socket notified with rejection reason
+- No state mutation occurs
+
+---
+
+### Engine Adapter Boundary Validation
+
+The engine adapter validates all job preparation:
+
+- **Input Validation**: All job parameters validated before processing
+- **Type Whitelist**: Only authorized job types allowed (`BUILD_SCENE`, `SPAWN_ENTITY`, `LOAD_ASSETS`)
+- **Schema Validation**: World specs validated against frozen schema
+- **Injection Prevention**: No arbitrary code execution paths
+
+**Enforcement Point:**
+- `backend/engine/engine_adapter.js` (`prepareEngineJob`)
+
+**Failure Behavior:**
+- Job rejected before dispatch
+- Error logged with reason
+- User notified via `job_error` event
+- Queue remains stable
+
+---
+
+### Unauthorized Execution Prevention
+
+Multiple layers prevent unauthorized engine execution:
+
+1. **Connection Layer**: JWT role validation
+2. **Message Layer**: Signature + nonce + timestamp verification
+3. **Adapter Layer**: Input validation + type whitelist
+4. **Queue Layer**: State machine prevents invalid transitions
+
+**Attack Scenarios Mitigated:**
+- ❌ Replay of captured engine messages (nonce protection)
+- ❌ Forged engine messages (signature verification)
+- ❌ Delayed message replay (timestamp validation)
+- ❌ Unauthorized job types (adapter whitelist)
+- ❌ Malformed job payloads (input validation)
+- ❌ Connection hijacking (JWT authentication)
+
+---
+
+## Security Verification Matrix
+
+| Layer | Control | Status |
+|-------|---------|--------|
+| User Actions | JWT + HMAC + Nonce | ✅ Enforced |
+| User Heartbeat | Liveness tracking | ✅ Enforced |
+| Engine Connection | JWT (role=engine) | ✅ Enforced |
+| Engine Messages | HMAC + Nonce + Timestamp | ✅ Enforced |
+| Engine Adapter | Input validation + Whitelist | ✅ Enforced |
+| Job Queue | State machine | ✅ Enforced |

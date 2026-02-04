@@ -43,14 +43,26 @@ function verifyEngineJWT(socket) {
 
 //   2. Verify Engine Packet Signature (HMAC)
 
-function verifyEngineSignature({ payload, nonce, sig }) {
-  if (!payload || !nonce || !sig) {
+function verifyEngineTimestamp(ts) {
+  const now = Date.now();
+  const drift = Math.abs(now - ts);
+  const MAX_DRIFT = 30000; // 30 seconds
+  
+  if (drift > MAX_DRIFT) {
+    throw new Error("ENGINE_TIMESTAMP_EXPIRED");
+  }
+}
+
+function verifyEngineSignature({ payload, nonce, sig, ts }) {
+  if (!payload || !nonce || !sig || !ts) {
     throw new Error("ENGINE_PACKET_INCOMPLETE");
   }
 
+  verifyEngineTimestamp(ts);
+
   const expectedSig = crypto
     .createHmac("sha256", process.env.ENGINE_SHARED_SECRET)
-    .update(JSON.stringify(payload) + nonce)
+    .update(JSON.stringify(payload) + nonce + ts)
     .digest("hex");
 
   if (expectedSig !== sig) {
@@ -71,5 +83,6 @@ function verifyAndConsumeNonce(nonce) {
 module.exports = {
   verifyEngineJWT,
   verifyEngineSignature,
-  verifyAndConsumeNonce
+  verifyAndConsumeNonce,
+  verifyEngineTimestamp
 };

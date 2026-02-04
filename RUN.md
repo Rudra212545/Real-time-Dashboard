@@ -169,16 +169,284 @@ Expected response:
 curl http://localhost:3000/security/status
 ```
 
-### Telemetry Replay
+---
+
+## 🔌 Engine Integration
+
+### Overview
+The system integrates with external game engines via Socket.IO on the `/engine` namespace. All engine communication is secured with JWT authentication, HMAC signatures, nonce replay protection, and timestamp validation.
+
+### Engine Connection Steps
+
+#### Step 1: Generate Engine JWT
+```javascript
+const jwt = require('jsonwebtoken');
+
+const engineToken = jwt.sign(
+  { engineId: 'your_engine_id', role: 'engine' },
+  process.env.JWT_SECRET,
+  { expiresIn: '1h' }
+);
+```
+
+#### Step 2: Connect to Engine Namespace
+```javascript
+const io = require('socket.io-client');
+
+const socket = io('http://localhost:3000/engine', {
+  auth: { token: engineToken }
+});
+```
+
+#### Step 3: Send Ready Signal
+```javascript
+socket.on('connect', () => {
+  socket.emit('engine_ready');
+  
+  // Start heartbeat (every 3 seconds)
+  setInterval(() => {
+    socket.emit('engine_heartbeat');
+  }, 3000);
+});
+```
+
+#### Step 4: Receive Jobs
+```javascript
+socket.on('engine_job', (job) => {
+  // job contains: job_id, job_type, world_spec, payload, user_id
+  processJob(job);
+});
+```
+
+#### Step 5: Send Signed Messages
+All engine messages must be signed:
+
+```javascript
+const crypto = require('crypto');
+
+function signMessage(payload) {
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const ts = Date.now();
+  const sig = crypto
+    .createHmac('sha256', process.env.ENGINE_SHARED_SECRET)
+    .update(JSON.stringify(payload) + nonce + ts)
+    .digest('hex');
+  
+  return { payload, nonce, ts, sig };
+}
+
+// Send job acknowledgement
+socket.emit('job_ack', signMessage({ 
+  jobId: job.job_id, 
+  status: 'received' 
+}));
+
+// Send job started
+socket.emit('job_started', signMessage({ 
+  job_id: job.job_id, 
+  timestamp: Date.now() 
+}));
+
+// Send progress
+socket.emit('job_progress', signMessage({ 
+  job_id: job.job_id, 
+  progress: 50,
+  timestamp: Date.now() 
+}));
+
+// Send completion
+socket.emit('job_completed', signMessage({ 
+  job_id: job.job_id, 
+  result: { success: true },
+  timestamp: Date.now() 
+}));
+```
+
+### Message Types
+
+**Outbound (Bridge → Engine):**
+- `engine_job` - Job dispatch with world_spec
+
+**Inbound (Engine → Bridge):**
+- `engine_ready` - Engine initialization complete
+- `engine_heartbeat` - Liveness signal (every 3s)
+- `job_ack` - Job received acknowledgement
+- `job_started` - Job execution started
+- `job_progress` - Job progress update (0-100)
+- `job_completed` - Job finished successfully
+- `job_failed` - Job execution failed
+- `engine_error` - Error reporting
+
+### Security Requirements
+
+**All inbound messages must include:**
+```javascript
+{
+  payload: { /* actual data */ },
+  nonce: "unique_hex_string",
+  ts: 1234567890,
+  sig: "hmac_signature"
+}
+```
+
+**Signature Calculation:**
+```javascript
+HMAC-SHA256(JSON.stringify(payload) + nonce + timestamp)
+```
+
+**Validation:**
+- JWT must have `role: "engine"`
+- Signature must be valid
+- Nonce must be unique (not reused)
+- Timestamp must be within ±30 seconds
+
+### Environment Variables
+
+Add to `backend/.env`:
+```env
+ENGINE_SHARED_SECRET=your_secure_secret_here
+```
+
+### Example: Complete Engine Client
+
+See `backend/test_mock_engine_secure.js` for a full working example.
+
+### Troubleshooting
+
+**Connection Rejected:**
+- Check JWT token is valid
+- Verify `role: "engine"` in JWT payload
+- Ensure JWT_SECRET matches backend
+
+**Messages Rejected:**
+- Verify ENGINE_SHARED_SECRET matches
+- Check signature calculation includes payload + nonce + timestamp
+- Ensure nonce is unique per message
+- Verify timestamp is current (±30s)
+
+**Heartbeat Timeout:**
+- Send heartbeat every 3 seconds
+- Check network connectivity
+- Verify socket connection is active
+
+---
+
+## 🧪 Testing Engine Integration
+
+### Test 1: Single Job Execution
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm start
+```
+
+**Terminal 2 - Mock Engine:**
+```bash
+cd backend
+node test_single_job.js
+```
+
+**Terminal 3 - Submit Job:**
+Open `http://localhost:5173`, login, and submit a "Generate World" job.
+
+**Expected**: Job processes through all stages (queued → dispatched → running → completed)
+
+---
+
+### Test 2: Concurrent Jobs
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm start
+```
+
+**Terminal 2 - Mock Engine:**
+```bash
+cd backend
+node test_concurrent_jobs.js
+```
+
+**Terminal 3 - Submit Multiple Jobs:**
+Open `http://localhost:5173`, submit 3 jobs quickly.
+
+**Expected**: All jobs process concurrently, engine handles multiple jobs simultaneously.
+
+---
+
+### Test 3: Engine Disconnect Simulation
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm start
+```
+
+**Terminal 2 - Mock Engine:**
+```bash
+cd backend
+node test_engine_disconnect.js
+```
+
+**Expected**: 
+- Engine connects and processes jobs
+- After 8 seconds, engine disconnects
+- Active jobs fail gracefully
+- After 5 seconds, engine reconnects
+- System recovers and accepts new jobs
+
+---
+
+### Test 4: Full Integration (Recommended)
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm start
+```
+
+**Terminal 2 - Secure Mock Engine:**
+```bash
+cd backend
+node test_mock_engine_secure.js
+```
+
+**Terminal 3 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+**Browser:**
+1. Open `http://localhost:5173`
+2. Login
+3. Submit "Generate World" job
+4. Watch Terminal 2 process jobs with signed messages
+5. Observe telemetry in UI (Engine Status Panel)
+
+**Expected**: All messages accepted, jobs complete, UI updates in real-time.
+
+---
+
+### Other Tests
+
+#### Telemetry Replay
 ```bash
 cd backend
 node test_telemetry_replay.js
 ```
 
-### Failure Simulation
+#### Failure Simulation
 ```bash
 cd backend
 node test_failures.js
+```
+
+#### Engine Security Tests
+```bash
+cd backend
+node test_engine_security_live.js
 ```
 
 ---
@@ -374,6 +642,7 @@ After setup, verify:
 - [ ] Cube Preview updates
 - [ ] No console errors
 - [ ] Health endpoint responds
+- [ ] Engine integration tests pass
 
 ---
 

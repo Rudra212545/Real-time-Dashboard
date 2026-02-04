@@ -270,16 +270,27 @@ function hexToRgb(hex) {
  * @returns {Object} Engine-compatible job object
  */
 function prepareEngineJob(internalJob, worldSpec) {
-  if (!internalJob || !internalJob.jobId) {
-    throw new Error("Invalid job: missing jobId");
+  // Security: Validate inputs to prevent unauthorized execution
+  if (!internalJob || typeof internalJob !== 'object') {
+    throw new Error("Invalid job: must be object");
+  }
+  
+  if (!internalJob.jobId || typeof internalJob.jobId !== 'string') {
+    throw new Error("Invalid job: missing or invalid jobId");
   }
 
-  if (!internalJob.jobType) {
-    throw new Error("Invalid job: missing jobType");
+  if (!internalJob.jobType || typeof internalJob.jobType !== 'string') {
+    throw new Error("Invalid job: missing or invalid jobType");
   }
 
-  if (!worldSpec) {
-    throw new Error("Invalid job: missing worldSpec");
+  if (!worldSpec || typeof worldSpec !== 'object') {
+    throw new Error("Invalid job: missing or invalid worldSpec");
+  }
+
+  // Validate jobType is from allowed list
+  const ALLOWED_JOB_TYPES = ['BUILD_SCENE', 'SPAWN_ENTITY', 'LOAD_ASSETS'];
+  if (!ALLOWED_JOB_TYPES.includes(internalJob.jobType)) {
+    throw new Error(`Invalid job: unauthorized jobType '${internalJob.jobType}'`);
   }
 
   // Remove jobs array from world_spec (internal tracking only)

@@ -8,7 +8,6 @@
 ##   Table of Contents
 
 * [Overview](#overview)
-* [Task Breakdown (7-Day + 4-Day)](#task-breakdown)
 * [Features](#features)
 * [System Architecture](#system-architecture)
 * [Setup & Installation](#setup--installation)
@@ -24,62 +23,6 @@
 
 This repository contains the complete implementation of **both internship technical tasks**:
 
-### **Task 1 — 7-Day Real-Time Micro-Bridge**
-
-A full-stack prototype implementing:
-
-* real-time presence
-* action bus
-* rule-based agents
-* JWT security
-* nonce replay protection
-* Three.js cube preview
-* small job queue
-* unified dashboard
-
-### **Task 2 — 4-Day Multi-Agent Orchestrator + Sovereign Sync Layer**
-
-A more advanced extension featuring:
-
-* multi-agent orchestrator
-* agent FSMs and priority ordering
-* per-agent security (HMAC/RSA, nonce rotation)
-* heartbeat validation
-* multi-user multi-agent isolation
-* final real-time dashboard
-* HHG reflection + documentation
-
-These two tasks together simulate the architecture of TTG’s real-world interactive micro-bridge & sovereign-core pipeline.
-
----
-
-## **Task Breakdown**
-
-### 7-DAY TASK (Task 1)
-
-| Day   | Focus                                         |
-| ----- | --------------------------------------------- |
-| Day 1 | Socket foundation + real-time engine          |
-| Day 2 | Presence detection (active/idle/disconnected) |
-| Day 3 | Action event bus                              |
-| Day 4 | Rule-based agent layer                        |
-| Day 5 | JWT + signatures + nonce replay protection    |
-| Day 6 | Three.js preview + job queue                  |
-| Day 7 | Final dashboard + HHG reflection              |
-
-###  4-DAY TASK (Task 2)
-
-(from the official test PDF)
-
-
-| Day   | Focus                                                           |
-| ----- | --------------------------------------------------------------- |
-| Day 1 | Multi-agent orchestrator (Hint, Nav, Predict, Rule)             |
-| Day 2 | Sovereign Sync Layer (per-agent signatures, nonces, heartbeats) |
-| Day 3 | Multi-user + multi-agent isolation & collisions                 |
-| Day 4 | Final Integration + Dashboard + HHG + Demo                      |
-
----
 
 ## **Features**
 
@@ -130,15 +73,13 @@ These two tasks together simulate the architecture of TTG’s real-world interac
 
 ## **System Architecture**
 
-
 <p align="center">
-  <img src="./docs/telemetry/architecture.png" width="720" />
+  <img src="./docs/architecture.png" width="720" />
 </p>
 
-
-For a detailed explanation of event flow, agent behavior, and security checkpoints,
-see 
- - [`ARCHITECTURE.md`](./MD/ARCHITECTURE.md).
+For a detailed explanation of event flow, agent behavior, and security checkpoints, see:
+- [`docs/architecture.md`](./docs/architecture.md)
+- [`docs/handover_final.md`](./docs/handover_final.md)
 
 
 ---
@@ -229,9 +170,236 @@ Preferences persist via localStorage.
 * Three.js integration with real-time UI
 * Building a professional dashboard with modular components
 * Improving debugging discipline using structured logs
+* Engine integration with secure Socket.IO communication
+* Job queue management with retry logic and failure handling
+* Real-time telemetry and monitoring systems
+
+---
+
+## **HHG Reflection**
+
+For detailed reflection on the development process, challenges faced, and lessons learned, see:
+- [`docs/HHG_reflection_final.md`](./docs/HHG_reflection_final.md)
+- [`docs/hhg_reflcetion.md`](./docs/hhg_reflcetion.md)
+
+---
+
+## **Documentation**
+
+### Core Documentation
+- [`RUN.md`](./RUN.md) - Setup and installation guide
+- [`docs/architecture.md`](./docs/architecture.md) - System architecture details
+- [`docs/handover_final.md`](./docs/handover_final.md) - Complete handover documentation
+- [`docs/security_readiness.md`](./docs/security_readiness.md) - Security implementation details
+
+### Engine Integration
+- [`docs/engine_adapter.md`](./docs/engine_adapter.md) - Engine adapter documentation
+- [`docs/engine_security.md`](./docs/engine_security.md) - Engine security protocols
+- [`docs/job_lifecycle.md`](./docs/job_lifecycle.md) - Job processing lifecycle
+
+### Testing & Validation
+- [`docs/TESTING_GUIDE.md`](./docs/TESTING_GUIDE.md) - Comprehensive testing guide
+- [`docs/failure_simulation_report.md`](./docs/failure_simulation_report.md) - Failure handling tests
+- [`docs/stress_test_report.md`](./docs/stress_test_report.md) - Performance testing results
+
+### Additional Resources
+- [`docs/demo_mode.md`](./docs/demo_mode.md) - Demo mode usage guide
+- [`docs/telemetry_coverage.md`](./docs/telemetry_coverage.md) - Telemetry system documentation
+- [`system_audit.md`](./system_audit.md) - System audit report
+
+---
+
+## **Repository Structure**
+
+```
+Real-Time-Micro-Bridge/
+├── backend/                 # Node.js backend server
+│   ├── agents/             # Multi-agent system (Hint, Nav, Predict, Rule)
+│   ├── auth/               # JWT & signature authentication
+│   ├── engine/             # Game engine integration layer
+│   ├── orchestrator/       # Multi-agent orchestrator
+│   ├── security/           # Nonce, heartbeat, replay protection
+│   ├── telemetry/          # Behaviour tracking & analytics
+│   └── index.js            # Server entry point
+├── frontend/               # React + Vite frontend
+│   ├── src/
+│   │   ├── components/     # Dashboard panels & UI components
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── socket/         # Socket.IO client
+│   │   └── state/          # State management
+│   └── package.json
+├── docs/                   # Comprehensive documentation
+├── Screenshots/            # Dashboard screenshots
+├── Videos/                 # Demo videos
+├── start.bat              # Windows startup script
+├── start.sh               # Unix/Linux startup script
+├── README.md              # This file
+└── RUN.md                 # Quick start guide
+```
+
+---
+
+## **Tech Stack**
+
+### Backend
+- **Node.js** - Runtime environment
+- **Express.js** - HTTP server
+- **Socket.IO** - Real-time WebSocket communication
+- **MongoDB** - Database for telemetry and events
+- **JWT** - Authentication tokens
+- **CryptoJS** - HMAC signatures and encryption
+
+### Frontend
+- **React** - UI framework
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling framework
+- **Three.js** - 3D cube preview
+- **Socket.IO Client** - Real-time communication
+
+---
+
+## **Key Features Implemented**
+
+### Security Layer
+- ✅ JWT-based authentication with role-based access
+- ✅ HMAC-SHA256 signatures for all actions
+- ✅ Per-agent cryptographic key registration
+- ✅ Nonce-based replay attack prevention
+- ✅ Timestamp validation (±30s window)
+- ✅ Heartbeat monitoring for engine liveness
+- ✅ Origin-restricted CORS policies
+
+### Multi-Agent System
+- ✅ HintAgent - Spam detection and user hints
+- ✅ NavAgent - Idle detection and navigation prompts
+- ✅ PredictAgent - Pattern-based predictions
+- ✅ RuleAgent - Fallback rule-based logic
+- ✅ Priority-based orchestration
+- ✅ FSM state management (Idle → Triggered → Cooldown)
+- ✅ Agent collision handling
+
+### Engine Integration
+- ✅ Secure Socket.IO namespace (`/engine`)
+- ✅ Job queue with retry logic
+- ✅ Real-time telemetry streaming
+- ✅ Graceful disconnect/reconnect handling
+- ✅ Job lifecycle tracking (queued → dispatched → running → completed)
+- ✅ Progress updates and error reporting
+
+### Dashboard Features
+- ✅ Real-time presence tracking (active/idle/disconnected)
+- ✅ Action log with categorization
+- ✅ Agent status panel with FSM visualization
+- ✅ Job queue panel with status indicators
+- ✅ 3D cube preview with Three.js
+- ✅ JSON config editor for world generation
+- ✅ Security panel (admin only)
+- ✅ User preferences (dark mode, compact mode)
+- ✅ Demo mode for quick testing
+- ✅ Multi-user simulator
+
+---
+
+## **Quick Start**
+
+### One-Command Setup
+
+**Windows:**
+```bash
+start.bat
+```
+
+**Mac/Linux:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+This will:
+1. Install all dependencies
+2. Create environment files
+3. Start backend (port 3000)
+4. Start frontend (port 5173)
+5. Open dashboard in browser
+
+For detailed setup instructions, see [`RUN.md`](./RUN.md).
+
+---
+
+## **Testing**
+
+### Run Tests
+```bash
+# Backend tests
+cd backend
+node test_single_job.js          # Single job execution
+node test_concurrent_jobs.js     # Concurrent job handling
+node test_engine_disconnect.js   # Disconnect recovery
+node test_mock_engine_secure.js  # Full integration test
+
+# Security tests
+node test_engine_security_live.js
+
+# Failure simulation
+node test_failures.js
+```
+
+### Health Check
+```bash
+curl http://localhost:3000/health
+```
+
+---
+
+## **Screenshots**
+
+<p align="center">
+  <img src="./Screenshots/Dashboard1.png" width="800" alt="Main Dashboard" />
+  <br/>
+  <em>Main Dashboard with all panels</em>
+</p>
+
+<p align="center">
+  <img src="./Screenshots/Agent Status.png" width="800" alt="Agent Status Panel" />
+  <br/>
+  <em>Agent Status Panel showing FSM states</em>
+</p>
+
+<p align="center">
+  <img src="./Screenshots/Job Queue.png" width="800" alt="Job Queue" />
+  <br/>
+  <em>Job Queue with real-time status updates</em>
+</p>
+
+More screenshots available in the [`Screenshots/`](./Screenshots/) directory.
+
+---
+
+## **Demo Videos**
+
+Demo videos showcasing the system in action:
+- [`Videos/demo_final.mp4`](./Videos/demo_final.mp4) - Complete system demo
+- [`Videos/demo_job_queue.mp4`](./Videos/demo_job_queue.mp4) - Job queue processing
+- [`Videos/overall_demo.mp4`](./Videos/overall_demo.mp4) - Full feature walkthrough
+
+---
+
+## **Contributing**
+
+This is an internship project for TTG . For questions or issues:
+
+1. Check the documentation in [`docs/`](./docs/)
+2. Review [`RUN.md`](./RUN.md) for setup issues
+3. See [`docs/TESTING_GUIDE.md`](./docs/TESTING_GUIDE.md) for testing procedures
 
 ---
 
 
+
+
+
+
+
+**Repository:** [https://github.com/Rudra212545/Real-time-Dashboard](https://github.com/Rudra212545/Real-time-Dashboard)
 
 

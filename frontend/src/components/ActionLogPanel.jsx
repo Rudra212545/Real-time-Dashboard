@@ -72,7 +72,7 @@ export default function ActionLogPanel({ actionLog = [] }) {
       {!isEmpty && (
         <div
           className={[
-            "relative mt-3 max-h-[620px] overflow-y-auto rounded-2xl p-3 space-y-2",
+            "relative mt-3 max-h-[400px] overflow-y-auto rounded-2xl p-3 space-y-2",
             "bg-white/70 dark:bg-slate-950/80",
             "border border-slate-200/70 dark:border-slate-800/70",
             "backdrop-blur-xl",

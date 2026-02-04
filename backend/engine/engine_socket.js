@@ -21,6 +21,23 @@ function log(event) {
   );
 }
 
+function verifyEngineMessage(data, socket, eventType) {
+  try {
+    verifyEngineSignature(data);
+    verifyAndConsumeNonce(data.nonce);
+    return true;
+  } catch (err) {
+    console.error(`[ENGINE ${eventType} REJECTED]`, err.message);
+    log({
+      type: `ENGINE_${eventType}_REJECTED`,
+      reason: err.message,
+      engineId: socket.engineId
+    });
+    socket.emit(`${eventType.toLowerCase()}_rejected`, { reason: err.message });
+    return false;
+  }
+}
+
 function setupEngineSocket(io, jobQueue) {
   const engineNS = io.of("/engine");
 
@@ -106,7 +123,9 @@ function setupEngineSocket(io, jobQueue) {
 
     // Job acknowledgement from engine
     socket.on("job_ack", (data) => {
-      const { jobId, status } = data;
+      if (!verifyEngineMessage(data, socket, 'JOB_ACK')) return;
+      
+      const { jobId, status } = data.payload;
       console.log(`[ENGINE ACK] Job ${jobId}: ${status}`);
       
       log({
@@ -192,11 +211,13 @@ function setupEngineSocket(io, jobQueue) {
 
     // Engine error reporting
     socket.on("engine_error", (data) => {
-      console.error("[ENGINE ERROR]", data);
+      if (!verifyEngineMessage(data, socket, 'ENGINE_ERROR')) return;
+      
+      console.error("[ENGINE ERROR]", data.payload);
       log({
         type: "ENGINE_ERROR",
-        error: data.error,
-        details: data.details,
+        error: data.payload.error,
+        details: data.payload.details,
         engineId: socket.engineId
       });
 
@@ -205,12 +226,14 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_started
     socket.on("job_started", (data) => {
-      if (!engineMonitor.recordTelemetry({ event: 'JOB_STARTED', ...data })) {
+      if (!verifyEngineMessage(data, socket, 'JOB_STARTED')) return;
+      
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_STARTED', ...data.payload })) {
         console.warn('[ENGINE] Malformed job_started telemetry');
         return;
       }
 
-      const { job_id, timestamp } = data;
+      const { job_id, timestamp } = data.payload;
       console.log(`[ENGINE TELEMETRY] Job started: ${job_id}`);
 
       updateJobStatus(job_id, "running", {
@@ -229,12 +252,14 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_progress
     socket.on("job_progress", (data) => {
-      if (!engineMonitor.recordTelemetry({ event: 'JOB_PROGRESS', ...data })) {
+      if (!verifyEngineMessage(data, socket, 'JOB_PROGRESS')) return;
+      
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_PROGRESS', ...data.payload })) {
         console.warn('[ENGINE] Malformed job_progress telemetry');
         return;
       }
 
-      const { job_id, progress, timestamp } = data;
+      const { job_id, progress, timestamp } = data.payload;
       console.log(`[ENGINE TELEMETRY] Job ${job_id}: ${progress}%`);
 
       recordTelemetry({
@@ -249,12 +274,14 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_completed
     socket.on("job_completed", (data) => {
-      if (!engineMonitor.recordTelemetry({ event: 'JOB_COMPLETED', ...data })) {
+      if (!verifyEngineMessage(data, socket, 'JOB_COMPLETED')) return;
+      
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_COMPLETED', ...data.payload })) {
         console.warn('[ENGINE] Malformed job_completed telemetry');
         return;
       }
 
-      const { job_id, result, timestamp } = data;
+      const { job_id, result, timestamp } = data.payload;
       console.log(`[ENGINE TELEMETRY] Job completed: ${job_id}`);
 
       const job = findJobById(job_id);
@@ -278,12 +305,14 @@ function setupEngineSocket(io, jobQueue) {
 
     // Inbound telemetry: job_failed
     socket.on("job_failed", (data) => {
-      if (!engineMonitor.recordTelemetry({ event: 'JOB_FAILED', ...data })) {
+      if (!verifyEngineMessage(data, socket, 'JOB_FAILED')) return;
+      
+      if (!engineMonitor.recordTelemetry({ event: 'JOB_FAILED', ...data.payload })) {
         console.warn('[ENGINE] Malformed job_failed telemetry');
         return;
       }
 
-      const { job_id, error, details, timestamp } = data;
+      const { job_id, error, details, timestamp } = data.payload;
       console.error(`[ENGINE TELEMETRY] Job failed: ${job_id} - ${error}`);
 
       updateJobStatus(job_id, "failed", {

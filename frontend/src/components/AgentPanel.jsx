@@ -102,7 +102,7 @@ export default function AgentPanel({
                 role="region"
                 aria-label={`${name} status`}
                 className={[
-                  "relative min-w-[280px] max-w-md rounded-2xl overflow-hidden group",
+                  "relative w-[320px] rounded-2xl overflow-hidden group",
                   "transition-all duration-500",
                   "bg-gradient-to-br from-white/80 to-slate-100/80",
                   "dark:from-slate-900/80 dark:to-slate-800/80",
@@ -114,11 +114,11 @@ export default function AgentPanel({
                   "hover:border-indigo-400/70 hover:shadow-indigo-500/25",
                   compactMode ? "p-3" : "p-4",
                   // Scale and glow based on state
-                  stateKey === "triggered" || stateKey === "cooldown" ? "scale-105" : "scale-100",
+                  (stateKey === "triggered" || (stateKey === "cooldown" && a.cooldownPct > 0)) ? "scale-105" : "scale-100",
                 ].join(" ")}
               >
                 {/* State glow effect */}
-                {(stateKey === "triggered" || stateKey === "cooldown") && (
+                {(stateKey === "triggered" || (stateKey === "cooldown" && a.cooldownPct > 0)) && (
                   <div className="absolute inset-0 pointer-events-none">
                     <div className={[
                       "absolute inset-0 opacity-20 blur-xl",

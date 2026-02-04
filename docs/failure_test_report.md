@@ -239,22 +239,22 @@ Failed jobs show:
 ## Screenshots
 
 ### 1. Normal Job Flow
-![Normal Jobs](../screenshots/normal_jobs.png)
+![Normal Jobs](../../screenshots/normal_jobs.png)
 - Shows successful job completion
 - Green indicators for finished jobs
 
 ### 2. Failed Jobs
-![Failed Jobs](../screenshots/failed_jobs.png)
+![Failed Jobs](../../screenshots/failed_jobs.png)
 - Red indicators for failed jobs
 - Error messages displayed inline
 
 ### 3. Mixed Status
-![Mixed Status](../screenshots/mixed_status.png)
+![Mixed Status](../../screenshots/mixed_status.png)
 - Combination of queued, started, finished, and failed
 - Clear visual distinction between states
 
 ### 4. Telemetry Log
-![Telemetry](../screenshots/telemetry_log.png)
+![Telemetry](../../screenshots/telemetry_log.png)
 - Shows JOB_FAILED events in log file
 - Includes error details in payload
 
