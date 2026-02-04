@@ -76,6 +76,7 @@ export default function CubePreview({ config = {} }) {
         cubeRef.current.geometry.dispose();
         cubeRef.current.geometry = new THREE.BoxGeometry(sx, sy, sz);
         cubeRef.current.material.color.setRGB(r, g, b);
+        cubeRef.current.material.needsUpdate = true;
       }
     }
   }, [config]);

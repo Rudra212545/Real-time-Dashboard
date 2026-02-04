@@ -271,6 +271,7 @@
       engineSchema = convertToEngineSchema(config);
       validateWorldSpec(engineSchema);
       console.log("[ENGINE SCHEMA VALIDATED]");
+      console.log("[ENGINE SCHEMA COLOR]", engineSchema.entities[0]?.material?.color);
     } catch (err) {
       console.error("[SCHEMA CONVERSION/VALIDATION FAILED]", err.message);
       return socket.emit("job_error", { error: "schema_validation_failed", message: err.message });
@@ -313,6 +314,7 @@
           });
 
           if (completedJobs === totalJobs) {
+            console.log("[WORLD_UPDATE COLOR]", engineSchema.entities[0]?.material?.color);
             io.to(`user:${jobObj.userId}`).emit("world_update", engineSchema);
           }
 
