@@ -13,6 +13,8 @@ import JobQueuePanel from "./components/JobQueuePanel";
 import SecurityPanel from "./components/SecurityPanel";
 import UserPreferencePanel from "./components/UserPreferencePanel";
 import DemoModePanel from "./components/DemoModePanel";
+import TextToGamePanel from "./components/TextToGamePanel";
+import GameTelemetryPanel from "./components/GameTelemetryPanel";
 
 import { agentsReducer, initialAgentsState } from "./state/agentsReducer";
 
@@ -119,7 +121,7 @@ function App() {
                 drop-shadow-[0_0_24px_rgba(56,189,248,0.35)]
               "
             >
-              Real-Time Dashboard
+              TTG - Dashboard
             </h1>
            
           </div>
@@ -140,6 +142,11 @@ function App() {
             <span>🧪</span>
             <span>Open User Simulator (2 Users)</span>
           </button>
+        </div>
+
+        <div className="relative z-10 mb-6 grid gap-6 grid-cols-1 md:grid-cols-2">
+          <TextToGamePanel onGameGenerated={setCubeConfig} />
+          <GameTelemetryPanel />
         </div>
 
         <div

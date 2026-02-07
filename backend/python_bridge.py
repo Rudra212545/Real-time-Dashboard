@@ -7,8 +7,8 @@ import hmac
 import hashlib
 import secrets
 
-# DASHBOARD_URL = "http://localhost:3000" 
-DASHBOARD_URL = "https://real-time-dashboard-backend-test.onrender.com"
+DASHBOARD_URL = "http://localhost:3000" 
+# DASHBOARD_URL = "https://real-time-dashboard-backend-test.onrender.com"
 ENGINE_PORT = 8080
 ENGINE_ID = "engine_local_01"
 JWT_SECRET = "JWT_SECRET_123456789"
@@ -68,34 +68,20 @@ async def connect():
 async def on_ready_ack(data):
     print("[Bridge] Ready ACK")
 
-@sio.on('engine_job', namespace='/engine')
+@sio.on('job:dispatch', namespace='/engine')
 async def on_engine_job(data):
-    job_id = data.get('job_id')
-    job_type = data.get('job_type')
+    job_id = data.get('jobId')
+    job_type = data.get('jobType')
     
     print(f"📦 [Cloud -> Bridge] Job: {job_type} ({job_id})")
-    
-    # Log color if present
-    world_spec = data.get('world_spec', {})
-    entities = world_spec.get('entities', [])
-    if entities and len(entities) > 0:
-        color = entities[0].get('material', {}).get('color')
-        if color:
-            print(f"   [Bridge] Color received: {color}")
     
     # Forward to C++ engine
     if engine_websocket:
         try:
-            # For SPAWN_ENTITY, send the specific entity payload, not world_spec
-            if job_type == 'SPAWN_ENTITY':
-                payload = data.get('payload', {})
-            else:
-                payload = data.get('world_spec', {})
-            
             job_packet = {
                 "jobType": job_type,
-                "job_id": job_id,
-                "payload": payload
+                "jobId": job_id,
+                "payload": data.get('payload', {})
             }
             await engine_websocket.send(json.dumps(job_packet))
             print(f"   [Bridge -> Engine] Forwarded")
@@ -126,7 +112,7 @@ async def engine_handler(websocket):
             
             if data.get("type") == "TELEMETRY":
                 event = data.get("event")
-                job_id = data.get("job_id")
+                job_id = data.get("jobId")
                 
                 if event == "job_started":
                     print(f"▶️  [Engine] Started: {job_id}")
@@ -161,12 +147,18 @@ async def engine_handler(websocket):
                 
                 elif event == "tick_update":
                     print(f" [Engine Heartbeat] FPS: {data['data']['fps']:.1f}")
-                
-                elif event == "error":
-                    print(f" [Engine Error] {data['data']}")
-                
-                else:
-                    print(f"ℹ️  [Engine Info] {event}")
+            
+            # Handle telemetry events (game telemetry)
+            elif data.get("type") == "GAME_TELEMETRY":
+                # Forward game telemetry to dashboard
+                await sio.emit('telemetry', data.get('data', {}), namespace='/engine')
+            
+            elif data.get("type") == "GAME_EVENT":
+                event = data.get("event")
+                if event == "game_started":
+                    await sio.emit('game:started', data.get('data', {}), namespace='/engine')
+                elif event == "game_ended":
+                    await sio.emit('game:ended', data.get('data', {}), namespace='/engine')
 
     except websockets.exceptions.ConnectionClosed:
         print("✗ [Bridge] Engine Disconnected")

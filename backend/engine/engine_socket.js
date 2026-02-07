@@ -73,8 +73,14 @@ function setupEngineSocket(io, jobQueue) {
     // Listen for jobs from queue
     const dispatchHandler = ({ job, worldSpec }) => {
       try {
-        const engineJob = prepareEngineJob(job, worldSpec);
-        socket.emit("engine_job", engineJob);
+        // Send job directly without prepareEngineJob wrapper
+        const engineJob = {
+          jobId: job.jobId,
+          jobType: job.jobType,
+          payload: job.payload
+        };
+        
+        socket.emit("job:dispatch", engineJob);
         
         console.log(`[ENGINE] Dispatched job ${job.jobId} (${job.jobType})`);
         log({ type: "JOB_DISPATCHED_TO_ENGINE", jobId: job.jobId, jobType: job.jobType });
@@ -301,6 +307,32 @@ function setupEngineSocket(io, jobQueue) {
       });
 
       log({ type: "JOB_COMPLETED", jobId: job_id });
+    });
+
+    // Game telemetry (fps, score, game_over)
+    socket.on("telemetry", (data) => {
+      // Broadcast to all dashboard clients
+      io.emit('telemetry', data);
+      
+      console.log(`[TELEMETRY] FPS: ${data.fps}, Score: ${data.score}, Lives: ${data.lives}`);
+      
+      recordTelemetry({
+        event: "GAME_TELEMETRY",
+        engineId: socket.engineId,
+        payload: data
+      });
+    });
+
+    // Game started event
+    socket.on("game:started", (data) => {
+      io.emit('game:started', data);
+      console.log(`[GAME] Started: ${data.game_mode}`);
+    });
+
+    // Game ended event
+    socket.on("game:ended", (data) => {
+      io.emit('game:ended', data);
+      console.log(`[GAME] Ended: ${data.reason}, Score: ${data.final_score}`);
     });
 
     // Inbound telemetry: job_failed

@@ -4,10 +4,17 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/authRoutes");
+const ttgRoutes = require("./routes/ttgRoutes");
 const { initSocket } = require("./socket");
 require("dotenv").config();
 const { setupEngineSocket } = require("./engine/engine_socket");
 const jobQueue = require("./jobQueue");
+
+// Set NODE_ENV if not set
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+  console.log('[CONFIG] NODE_ENV set to development');
+}
 
 // Clear job queue on startup
 jobQueue.clearAllJobs();
@@ -28,6 +35,7 @@ app.use(express.json());
 
 // routes
 app.use("/auth", authRoutes);
+app.use("/api/ttg", ttgRoutes);
 
 // db (optional - system works without MongoDB)
 if (process.env.MONGO_URI && process.env.MONGO_URI !== 'mongodb://localhost:27017/microbridge') {
@@ -43,6 +51,7 @@ if (process.env.MONGO_URI && process.env.MONGO_URI !== 'mongodb://localhost:2701
 
 // sockets
 const io = initSocket(server);
+app.set('io', io);
 setupEngineSocket(io, jobQueue);
 
 const PORT = process.env.PORT || 3000;

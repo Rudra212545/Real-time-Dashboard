@@ -1,53 +1,87 @@
-@layer components {
-  .glass-card {
-    @apply
-      relative overflow-hidden
-      min-h-[280px]
-      rounded-2xl
-      p-6
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 280px;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: white;
+  color: rgb(15 23 42);
+  border: 1px solid rgb(226 232 240);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
 
-      /* LIGHT MODE */
-      bg-white text-slate-900
-      border border-slate-200
+.dark .glass-card {
+  background: linear-gradient(to bottom right, rgb(15 23 42 / 0.9), rgb(30 41 59 / 0.85));
+  color: rgb(226 232 240);
+  border-color: rgb(99 102 241 / 0.2);
+}
 
-      /* DARK MODE */
-      dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-slate-800/85
-      dark:text-slate-200
-      dark:border-indigo-500/20
+.btn-primary {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(to bottom right, rgb(99 102 241), rgb(139 92 246));
+  box-shadow: 0 10px 15px -3px rgb(99 102 241 / 0.3);
+  transition: all 0.2s;
+}
 
-      backdrop-blur-xl
-      shadow-xl;
-  }
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+}
 
-  .btn-primary {
-    @apply
-      w-full py-3 rounded-xl font-semibold text-white
-      bg-gradient-to-br from-indigo-500 to-violet-500
-      shadow-lg shadow-indigo-500/30
-      transition
-      hover:-translate-y-0.5 hover:scale-[1.02]
-      active:scale-[0.98];
-  }
+.btn-primary:active {
+  transform: scale(0.98);
+}
 
-  .btn-secondary {
-    @apply
-      w-full py-3 rounded-xl font-medium
-      text-slate-700 dark:text-indigo-100
-      bg-slate-200 dark:bg-slate-800/70
-      border border-slate-300 dark:border-slate-600
-      transition
-      hover:bg-slate-300 dark:hover:bg-slate-700/70
-      hover:border-indigo-400;
-  }
+.btn-secondary {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  color: rgb(51 65 85);
+  background: rgb(226 232 240);
+  border: 1px solid rgb(203 213 225);
+  transition: all 0.2s;
+}
 
-  .input-dark {
-    @apply
-      w-full px-3 py-2 rounded-lg
-      bg-white dark:bg-slate-900/60
-      border border-slate-300 dark:border-slate-600
-      text-slate-900 dark:text-slate-200
-      placeholder-slate-400
-      focus:outline-none
-      focus:ring-2 focus:ring-indigo-500/40;
-  }
+.dark .btn-secondary {
+  color: rgb(224 231 255);
+  background: rgb(30 41 59 / 0.7);
+  border-color: rgb(71 85 105);
+}
+
+.btn-secondary:hover {
+  background: rgb(203 213 225);
+  border-color: rgb(129 140 248);
+}
+
+.dark .btn-secondary:hover {
+  background: rgb(51 65 85 / 0.7);
+}
+
+.input-dark {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: white;
+  border: 1px solid rgb(203 213 225);
+  color: rgb(15 23 42);
+}
+
+.dark .input-dark {
+  background: rgb(15 23 42 / 0.6);
+  border-color: rgb(71 85 105);
+  color: rgb(226 232 240);
+}
+
+.input-dark::placeholder {
+  color: rgb(148 163 184);
+}
+
+.input-dark:focus {
+  outline: none;
+  ring: 2px solid rgb(99 102 241 / 0.4);
 }

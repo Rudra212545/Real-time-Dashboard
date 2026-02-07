@@ -2,7 +2,7 @@
 
 const { randomUUID } = require("crypto");
 
-function buildEngineJobs(worldSpec) {
+function buildEngineJobs(worldSpec, gameParams = null) {
   if (!worldSpec || !worldSpec.scene || !Array.isArray(worldSpec.entities)) {
     throw new Error("Invalid worldSpec passed to buildEngineJobs");
   }
@@ -16,7 +16,8 @@ function buildEngineJobs(worldSpec) {
     payload: {
       sceneId: worldSpec.scene.id,
       ambientLight: worldSpec.scene.ambientLight,
-      skybox: worldSpec.scene.skybox
+      skybox: worldSpec.scene.skybox,
+      gravity: worldSpec.world?.gravity || [0, -9.8, 0]
     }
   });
 
@@ -55,6 +56,15 @@ function buildEngineJobs(worldSpec) {
     });
   });
 
+  // 4. START_LOOP (if game params provided)
+  if (gameParams) {
+    jobs.push({
+      jobId: randomUUID(),
+      jobType: "START_LOOP",
+      payload: gameParams
+    });
+  }
+
   console.log(
     "[ENGINE JOBS GENERATED]",
     jobs.map(j => `${j.jobType}:${j.jobId}`)
@@ -63,4 +73,16 @@ function buildEngineJobs(worldSpec) {
   return jobs;
 }
 
-module.exports = { buildEngineJobs };
+function createEndGameJob(reason, finalScore, duration) {
+  return {
+    jobId: randomUUID(),
+    jobType: "END_GAME",
+    payload: {
+      reason: reason || "manual_stop",
+      final_score: finalScore || 0,
+      duration: duration || 0
+    }
+  };
+}
+
+module.exports = { buildEngineJobs, createEndGameJob };
