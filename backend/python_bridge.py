@@ -7,8 +7,8 @@ import hmac
 import hashlib
 import secrets
 
-DASHBOARD_URL = "http://localhost:3000" 
-# DASHBOARD_URL = "https://real-time-dashboard-backend-test.onrender.com"
+# DASHBOARD_URL = "http://localhost:3000" 
+DASHBOARD_URL = "https://real-time-dashboard-backend-test.onrender.com"
 ENGINE_PORT = 8080
 ENGINE_ID = "engine_local_01"
 JWT_SECRET = "JWT_SECRET_123456789"

@@ -27,7 +27,7 @@ const server = createServer(app);
 // middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN,
+    origin: process.env.FRONTEND_ORIGIN || '*',
     credentials: true,
   })
 );

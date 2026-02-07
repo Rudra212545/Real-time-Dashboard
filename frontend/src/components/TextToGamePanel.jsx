@@ -5,6 +5,8 @@
 
 import { useState } from 'react';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
 export default function TextToGamePanel({ socket }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function TextToGamePanel({ socket }) {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:3000/api/ttg/text-to-game', {
+      const response = await fetch(`${BACKEND_URL}/api/ttg/text-to-game`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
@@ -54,7 +56,7 @@ export default function TextToGamePanel({ socket }) {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3000/api/ttg/build-game', {
+      const response = await fetch(`${BACKEND_URL}/api/ttg/build-game`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
@@ -91,7 +93,7 @@ export default function TextToGamePanel({ socket }) {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3000/api/ttg/start-game', {
+      const response = await fetch(`${BACKEND_URL}/api/ttg/start-game`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
